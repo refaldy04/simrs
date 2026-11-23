@@ -74,8 +74,21 @@ Detail error Yii2 dicatat di `runtime/logs/app.log` dalam container `backend`.
 
 PostgreSQL membaca `POSTGRES_DB`, `POSTGRES_USER`, dan `POSTGRES_PASSWORD` saat pertama kali menginisialisasi volume `postgres-data`. Volume menyimpan data di antara sesi pengembangan. [Dokumentasi image PostgreSQL](https://hub.docker.com/_/postgres)
 
-Perintah CLI Yii2 dijalankan dari container `backend`. Lokasi migrasi untuk perintah `migrate` adalah `database/migrations/`.
+Jalankan migrasi Yii2 dari root repositori setelah stack siap. Migrasi dibaca dari `database/migrations/` dan hanya versi yang belum tercatat yang akan dijalankan.
 
 ```sh
-docker compose exec backend php yii help migrate
+docker compose exec -T backend php yii migrate --interactive=0
 ```
+
+Isi database development dengan data demo setelah migrasi selesai.
+
+```sh
+docker compose exec -T db sh -ec \
+  'psql -X -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < database/seeds/demo.sql
+```
+
+Seed memuat lima kunjungan fiktif pada **23 November 2026**, termasuk antrean, resep, pemeriksaan lab, serta tagihan lunas, dibayar sebagian, dan belum dibayar. Seed dapat dijalankan ulang. Tagihan `DEMO-INV-001` menandai bahwa data demo sudah tersedia.
+
+Akun fixture memakai kata sandi `SimrsDemo2026!`. Nama pengguna yang tersedia adalah `demo.admin`, `demo.pendaftaran`, `demo.dokter.umum`, `demo.dokter.dalam`, `demo.farmasi`, `demo.lab`, dan `demo.kasir`.
+
+`schema.sql` adalah snapshot DDL yang dihasilkan dari migrasi. Diagram dan sumbernya tersedia di dokumentasi. [Skema PostgreSQL](database/schema.sql) · [ERD](docs/erd.png) · [Sumber Graphviz](docs/erd.dot) · [Keputusan teknis](docs/technical-decisions.md)

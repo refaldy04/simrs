@@ -1,0 +1,348 @@
+// ERD PostgreSQL SIMRS. Render dengan dot -Tpng docs/erd.dot -o docs/erd.png.
+digraph simrs {
+  graph [rankdir=LR, newrank=true, splines=polyline, bgcolor="#F8FAFC", pad=0.36, nodesep=0.33, ranksep=0.85, dpi=155,
+    fontname="DejaVu Sans", fontsize=23, fontcolor="#183047", labelloc=t, labeljust=l,
+    label=<<B>ERD SIMRS Rawat Jalan</B><BR ALIGN="LEFT"/><FONT POINT-SIZE="11">PostgreSQL 17 · PK kunci primer · FK kunci asing · UQ unik · Lingkaran menandai relasi opsional</FONT>>];
+  node [shape=plain, fontname="DejaVu Sans", fontsize=10, fontcolor="#20364d"];
+  edge [color="#7590a7", penwidth=1.15, arrowsize=0.65, dir=both];
+
+  subgraph cluster_access {
+    label="Akses dan staf"; labeljust=l; labelloc=t; fontsize=14; fontcolor="#244568";
+    style="rounded,filled"; fillcolor="#edf3fa"; color="#bdcee1"; penwidth=1.1; margin=16;
+    roles [label=<
+      <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" COLOR="#bdcee1" BGCOLOR="#FFFFFF">
+        <TR><TD COLSPAN="2" ALIGN="LEFT" BGCOLOR="#244568"><FONT COLOR="#FFFFFF"><B>roles</B></FONT></TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>PK</B></FONT></TD><TD ALIGN="LEFT">code</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">name</TD></TR>
+      </TABLE>>];
+    users [label=<
+      <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" COLOR="#bdcee1" BGCOLOR="#FFFFFF">
+        <TR><TD COLSPAN="2" ALIGN="LEFT" BGCOLOR="#244568"><FONT COLOR="#FFFFFF"><B>users</B></FONT></TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>PK</B></FONT></TD><TD ALIGN="LEFT">id</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>FK</B></FONT></TD><TD ALIGN="LEFT">role_code</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>UQ</B></FONT></TD><TD ALIGN="LEFT">username</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">password_hash</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">is_active</TD></TR>
+      </TABLE>>];
+    medical_staff [label=<
+      <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" COLOR="#bdcee1" BGCOLOR="#FFFFFF">
+        <TR><TD COLSPAN="2" ALIGN="LEFT" BGCOLOR="#244568"><FONT COLOR="#FFFFFF"><B>medical_staff</B></FONT></TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>PK</B></FONT></TD><TD ALIGN="LEFT">id</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>FK/UQ</B></FONT></TD><TD ALIGN="LEFT">user_id</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>UQ</B></FONT></TD><TD ALIGN="LEFT">employee_no</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">full_name</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">profession</TD></TR>
+      </TABLE>>];
+    doctors [label=<
+      <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" COLOR="#bdcee1" BGCOLOR="#FFFFFF">
+        <TR><TD COLSPAN="2" ALIGN="LEFT" BGCOLOR="#244568"><FONT COLOR="#FFFFFF"><B>doctors</B></FONT></TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>PK/FK</B></FONT></TD><TD ALIGN="LEFT">staff_id</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">specialty</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>UQ</B></FONT></TD><TD ALIGN="LEFT">practice_license_no</TD></TR>
+      </TABLE>>];
+  }
+
+  subgraph cluster_master {
+    label="Master data"; labeljust=l; labelloc=t; fontsize=14; fontcolor="#3f5072";
+    style="rounded,filled"; fillcolor="#eef2f8"; color="#c3cddf"; penwidth=1.1; margin=16;
+    patients [label=<
+      <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" COLOR="#c3cddf" BGCOLOR="#FFFFFF">
+        <TR><TD COLSPAN="2" ALIGN="LEFT" BGCOLOR="#3f5072"><FONT COLOR="#FFFFFF"><B>patients</B></FONT></TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>PK</B></FONT></TD><TD ALIGN="LEFT">id</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>UQ</B></FONT></TD><TD ALIGN="LEFT">medical_record_no</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>UQ</B></FONT></TD><TD ALIGN="LEFT">national_id</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">full_name</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">birth_date</TD></TR>
+      </TABLE>>];
+    clinics [label=<
+      <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" COLOR="#c3cddf" BGCOLOR="#FFFFFF">
+        <TR><TD COLSPAN="2" ALIGN="LEFT" BGCOLOR="#3f5072"><FONT COLOR="#FFFFFF"><B>clinics</B></FONT></TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>PK</B></FONT></TD><TD ALIGN="LEFT">id</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>UQ</B></FONT></TD><TD ALIGN="LEFT">code</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">name</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">registration_fee</TD></TR>
+      </TABLE>>];
+    doctor_schedules [label=<
+      <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" COLOR="#c3cddf" BGCOLOR="#FFFFFF">
+        <TR><TD COLSPAN="2" ALIGN="LEFT" BGCOLOR="#3f5072"><FONT COLOR="#FFFFFF"><B>doctor_schedules</B></FONT></TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>PK</B></FONT></TD><TD ALIGN="LEFT">id</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>FK</B></FONT></TD><TD ALIGN="LEFT">doctor_id</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>FK</B></FONT></TD><TD ALIGN="LEFT">clinic_id</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">practice_date</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">starts_at</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">ends_at</TD></TR>
+      </TABLE>>];
+    medical_procedures [label=<
+      <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" COLOR="#c3cddf" BGCOLOR="#FFFFFF">
+        <TR><TD COLSPAN="2" ALIGN="LEFT" BGCOLOR="#3f5072"><FONT COLOR="#FFFFFF"><B>medical_procedures</B></FONT></TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>PK</B></FONT></TD><TD ALIGN="LEFT">id</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>UQ</B></FONT></TD><TD ALIGN="LEFT">code</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">name</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">price</TD></TR>
+      </TABLE>>];
+  }
+
+  subgraph cluster_visits {
+    label="Kunjungan dan pemeriksaan"; labeljust=l; labelloc=t; fontsize=14; fontcolor="#17566a";
+    style="rounded,filled"; fillcolor="#eaf5f8"; color="#acd0d8"; penwidth=1.1; margin=16;
+    visit_queue_counters [label=<
+      <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" COLOR="#acd0d8" BGCOLOR="#FFFFFF">
+        <TR><TD COLSPAN="2" ALIGN="LEFT" BGCOLOR="#17566a"><FONT COLOR="#FFFFFF"><B>visit_queue_counters</B></FONT></TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>PK/FK</B></FONT></TD><TD ALIGN="LEFT">clinic_id</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>PK</B></FONT></TD><TD ALIGN="LEFT">visit_date</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">last_number</TD></TR>
+      </TABLE>>];
+    visits [label=<
+      <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" COLOR="#acd0d8" BGCOLOR="#FFFFFF">
+        <TR><TD COLSPAN="2" ALIGN="LEFT" BGCOLOR="#17566a"><FONT COLOR="#FFFFFF"><B>visits</B></FONT></TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>PK</B></FONT></TD><TD ALIGN="LEFT">id</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>FK</B></FONT></TD><TD ALIGN="LEFT">patient_id</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>FK</B></FONT></TD><TD ALIGN="LEFT">schedule_id</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>FK</B></FONT></TD><TD ALIGN="LEFT">clinic_id</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>FK</B></FONT></TD><TD ALIGN="LEFT">visit_date</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">queue_number</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">status</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">registration_fee</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>FK</B></FONT></TD><TD ALIGN="LEFT">registered_by</TD></TR>
+      </TABLE>>];
+    examinations [label=<
+      <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" COLOR="#acd0d8" BGCOLOR="#FFFFFF">
+        <TR><TD COLSPAN="2" ALIGN="LEFT" BGCOLOR="#17566a"><FONT COLOR="#FFFFFF"><B>examinations</B></FONT></TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>PK</B></FONT></TD><TD ALIGN="LEFT">id</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>FK/UQ</B></FONT></TD><TD ALIGN="LEFT">visit_id</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>FK</B></FONT></TD><TD ALIGN="LEFT">examiner_id</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">chief_complaint</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">anamnesis</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">physical_findings</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">systolic_bp</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">diastolic_bp</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">pulse_rate</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">respiratory_rate</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">temperature_c</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">examined_at</TD></TR>
+      </TABLE>>];
+    diagnoses [label=<
+      <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" COLOR="#acd0d8" BGCOLOR="#FFFFFF">
+        <TR><TD COLSPAN="2" ALIGN="LEFT" BGCOLOR="#17566a"><FONT COLOR="#FFFFFF"><B>diagnoses</B></FONT></TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>PK</B></FONT></TD><TD ALIGN="LEFT">id</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>FK</B></FONT></TD><TD ALIGN="LEFT">examination_id</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">code</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">description</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">is_primary</TD></TR>
+      </TABLE>>];
+    visit_procedures [label=<
+      <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" COLOR="#acd0d8" BGCOLOR="#FFFFFF">
+        <TR><TD COLSPAN="2" ALIGN="LEFT" BGCOLOR="#17566a"><FONT COLOR="#FFFFFF"><B>visit_procedures</B></FONT></TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>PK</B></FONT></TD><TD ALIGN="LEFT">id</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>FK</B></FONT></TD><TD ALIGN="LEFT">visit_id</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>FK</B></FONT></TD><TD ALIGN="LEFT">procedure_id</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>FK</B></FONT></TD><TD ALIGN="LEFT">performed_by</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">quantity</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">unit_price</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">cancelled_at</TD></TR>
+      </TABLE>>];
+  }
+
+  subgraph cluster_pharmacy {
+    label="Farmasi"; labeljust=l; labelloc=t; fontsize=14; fontcolor="#245946";
+    style="rounded,filled"; fillcolor="#edf7f1"; color="#b8d6c5"; penwidth=1.1; margin=16;
+    medicines [label=<
+      <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" COLOR="#b8d6c5" BGCOLOR="#FFFFFF">
+        <TR><TD COLSPAN="2" ALIGN="LEFT" BGCOLOR="#245946"><FONT COLOR="#FFFFFF"><B>medicines</B></FONT></TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>PK</B></FONT></TD><TD ALIGN="LEFT">id</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>UQ</B></FONT></TD><TD ALIGN="LEFT">code</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">name</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">unit</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">price</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">stock_quantity</TD></TR>
+      </TABLE>>];
+    prescriptions [label=<
+      <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" COLOR="#b8d6c5" BGCOLOR="#FFFFFF">
+        <TR><TD COLSPAN="2" ALIGN="LEFT" BGCOLOR="#245946"><FONT COLOR="#FFFFFF"><B>prescriptions</B></FONT></TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>PK</B></FONT></TD><TD ALIGN="LEFT">id</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>FK</B></FONT></TD><TD ALIGN="LEFT">visit_id</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>FK</B></FONT></TD><TD ALIGN="LEFT">prescribed_by</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">status</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>FK</B></FONT></TD><TD ALIGN="LEFT">dispensed_by</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">dispensed_at</TD></TR>
+      </TABLE>>];
+    prescription_items [label=<
+      <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" COLOR="#b8d6c5" BGCOLOR="#FFFFFF">
+        <TR><TD COLSPAN="2" ALIGN="LEFT" BGCOLOR="#245946"><FONT COLOR="#FFFFFF"><B>prescription_items</B></FONT></TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>PK</B></FONT></TD><TD ALIGN="LEFT">id</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>FK</B></FONT></TD><TD ALIGN="LEFT">prescription_id</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>FK</B></FONT></TD><TD ALIGN="LEFT">visit_id</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>FK</B></FONT></TD><TD ALIGN="LEFT">medicine_id</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">dose</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">frequency</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">quantity</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">unit_price</TD></TR>
+      </TABLE>>];
+    medicine_stock_movements [label=<
+      <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" COLOR="#b8d6c5" BGCOLOR="#FFFFFF">
+        <TR><TD COLSPAN="2" ALIGN="LEFT" BGCOLOR="#245946"><FONT COLOR="#FFFFFF"><B>medicine_stock_movements</B></FONT></TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>PK</B></FONT></TD><TD ALIGN="LEFT">id</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>FK</B></FONT></TD><TD ALIGN="LEFT">medicine_id</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>FK/UQ</B></FONT></TD><TD ALIGN="LEFT">prescription_item_id</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">movement_type</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">quantity_delta</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>FK</B></FONT></TD><TD ALIGN="LEFT">recorded_by</TD></TR>
+      </TABLE>>];
+  }
+
+  subgraph cluster_laboratory {
+    label="Laboratorium dan integrasi"; labeljust=l; labelloc=t; fontsize=14; fontcolor="#574373";
+    style="rounded,filled"; fillcolor="#f4eff9"; color="#cec0e0"; penwidth=1.1; margin=16;
+    lab_tests [label=<
+      <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" COLOR="#cec0e0" BGCOLOR="#FFFFFF">
+        <TR><TD COLSPAN="2" ALIGN="LEFT" BGCOLOR="#574373"><FONT COLOR="#FFFFFF"><B>lab_tests</B></FONT></TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>PK</B></FONT></TD><TD ALIGN="LEFT">id</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>UQ</B></FONT></TD><TD ALIGN="LEFT">code</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">name</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">price</TD></TR>
+      </TABLE>>];
+    lab_orders [label=<
+      <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" COLOR="#cec0e0" BGCOLOR="#FFFFFF">
+        <TR><TD COLSPAN="2" ALIGN="LEFT" BGCOLOR="#574373"><FONT COLOR="#FFFFFF"><B>lab_orders</B></FONT></TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>PK</B></FONT></TD><TD ALIGN="LEFT">id</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>FK</B></FONT></TD><TD ALIGN="LEFT">visit_id</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>FK</B></FONT></TD><TD ALIGN="LEFT">ordered_by</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">status</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">ordered_at</TD></TR>
+      </TABLE>>];
+    lab_order_items [label=<
+      <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" COLOR="#cec0e0" BGCOLOR="#FFFFFF">
+        <TR><TD COLSPAN="2" ALIGN="LEFT" BGCOLOR="#574373"><FONT COLOR="#FFFFFF"><B>lab_order_items</B></FONT></TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>PK</B></FONT></TD><TD ALIGN="LEFT">id</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>FK</B></FONT></TD><TD ALIGN="LEFT">lab_order_id</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>FK</B></FONT></TD><TD ALIGN="LEFT">visit_id</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>FK</B></FONT></TD><TD ALIGN="LEFT">lab_test_id</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">unit_price</TD></TR>
+      </TABLE>>];
+    lab_results [label=<
+      <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" COLOR="#cec0e0" BGCOLOR="#FFFFFF">
+        <TR><TD COLSPAN="2" ALIGN="LEFT" BGCOLOR="#574373"><FONT COLOR="#FFFFFF"><B>lab_results</B></FONT></TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>PK/FK</B></FONT></TD><TD ALIGN="LEFT">lab_order_item_id</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">result_value</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>FK</B></FONT></TD><TD ALIGN="LEFT">entered_by</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">entered_at</TD></TR>
+      </TABLE>>];
+    integration_outbox [label=<
+      <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" COLOR="#cec0e0" BGCOLOR="#FFFFFF">
+        <TR><TD COLSPAN="2" ALIGN="LEFT" BGCOLOR="#574373"><FONT COLOR="#FFFFFF"><B>integration_outbox</B></FONT></TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>PK</B></FONT></TD><TD ALIGN="LEFT">id</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>UQ</B></FONT></TD><TD ALIGN="LEFT">event_key</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>FK</B></FONT></TD><TD ALIGN="LEFT">lab_order_id</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">event_type</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">next_attempt_at</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">published_at</TD></TR>
+      </TABLE>>];
+  }
+
+  subgraph cluster_billing {
+    label="Billing dan audit"; labeljust=l; labelloc=t; fontsize=14; fontcolor="#734929";
+    style="rounded,filled"; fillcolor="#faf2e9"; color="#dfc8b4"; penwidth=1.1; margin=16;
+    invoices [label=<
+      <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" COLOR="#dfc8b4" BGCOLOR="#FFFFFF">
+        <TR><TD COLSPAN="2" ALIGN="LEFT" BGCOLOR="#734929"><FONT COLOR="#FFFFFF"><B>invoices</B></FONT></TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>PK</B></FONT></TD><TD ALIGN="LEFT">id</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>FK/UQ</B></FONT></TD><TD ALIGN="LEFT">visit_id</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>UQ</B></FONT></TD><TD ALIGN="LEFT">invoice_no</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>FK</B></FONT></TD><TD ALIGN="LEFT">issued_by</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">issued_at</TD></TR>
+      </TABLE>>];
+    invoice_items [label=<
+      <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" COLOR="#dfc8b4" BGCOLOR="#FFFFFF">
+        <TR><TD COLSPAN="2" ALIGN="LEFT" BGCOLOR="#734929"><FONT COLOR="#FFFFFF"><B>invoice_items</B></FONT></TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>PK</B></FONT></TD><TD ALIGN="LEFT">id</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>FK</B></FONT></TD><TD ALIGN="LEFT">invoice_id</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>FK</B></FONT></TD><TD ALIGN="LEFT">visit_id</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">item_type</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">description</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">quantity</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">unit_price</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>FK/UQ</B></FONT></TD><TD ALIGN="LEFT">visit_procedure_id</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>FK/UQ</B></FONT></TD><TD ALIGN="LEFT">lab_order_item_id</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>FK/UQ</B></FONT></TD><TD ALIGN="LEFT">prescription_item_id</TD></TR>
+      </TABLE>>];
+    payments [label=<
+      <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" COLOR="#dfc8b4" BGCOLOR="#FFFFFF">
+        <TR><TD COLSPAN="2" ALIGN="LEFT" BGCOLOR="#734929"><FONT COLOR="#FFFFFF"><B>payments</B></FONT></TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>PK</B></FONT></TD><TD ALIGN="LEFT">id</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>FK</B></FONT></TD><TD ALIGN="LEFT">invoice_id</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>UQ</B></FONT></TD><TD ALIGN="LEFT">receipt_no</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>UQ</B></FONT></TD><TD ALIGN="LEFT">idempotency_key</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">method</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">amount</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>FK</B></FONT></TD><TD ALIGN="LEFT">received_by</TD></TR>
+      </TABLE>>];
+    invoice_balances [label=<
+      <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" COLOR="#dfc8b4" BGCOLOR="#FFFFFF">
+        <TR><TD COLSPAN="2" ALIGN="LEFT" BGCOLOR="#734929"><FONT COLOR="#FFFFFF"><B>invoice_balances</B></FONT></TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>VIEW</B></FONT></TD><TD ALIGN="LEFT">invoice_id</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">visit_id</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">total_amount</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">paid_amount</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">balance_amount</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">status</TD></TR>
+      </TABLE>>];
+    audit_logs [label=<
+      <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" COLOR="#dfc8b4" BGCOLOR="#FFFFFF">
+        <TR><TD COLSPAN="2" ALIGN="LEFT" BGCOLOR="#734929"><FONT COLOR="#FFFFFF"><B>audit_logs</B></FONT></TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>PK</B></FONT></TD><TD ALIGN="LEFT">id</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>FK</B></FONT></TD><TD ALIGN="LEFT">visit_id</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>FK</B></FONT></TD><TD ALIGN="LEFT">actor_user_id</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">entity_type</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">entity_id</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">action</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">before_data</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">after_data</TD></TR>
+      </TABLE>>];
+  }
+
+  clinics -> doctor_schedules [arrowtail=tee, arrowhead=crowodot]; // clinic_id
+  clinics -> visit_queue_counters [arrowtail=tee, arrowhead=crowodot]; // clinic_id
+  doctor_schedules -> visits [arrowtail=tee, arrowhead=crowodot]; // schedule_id, clinic_id, visit_date
+  doctors -> doctor_schedules [arrowtail=tee, arrowhead=crowodot]; // doctor_id
+  doctors -> examinations [arrowtail=tee, arrowhead=crowodot]; // examiner_id
+  doctors -> lab_orders [arrowtail=tee, arrowhead=crowodot]; // ordered_by
+  doctors -> prescriptions [arrowtail=tee, arrowhead=crowodot]; // prescribed_by
+  doctors -> visit_procedures [arrowtail=tee, arrowhead=crowodot]; // performed_by
+  examinations -> diagnoses [arrowtail=tee, arrowhead=crowodot]; // examination_id
+  invoices -> invoice_items [arrowtail=tee, arrowhead=crowodot]; // invoice_id, visit_id
+  invoices -> payments [arrowtail=tee, arrowhead=crowodot]; // invoice_id
+  lab_order_items -> invoice_items [arrowtail=teeodot, arrowhead=teeodot]; // lab_order_item_id, visit_id
+  lab_order_items -> lab_results [arrowtail=tee, arrowhead=teeodot]; // lab_order_item_id
+  lab_orders -> integration_outbox [arrowtail=tee, arrowhead=crowodot]; // lab_order_id
+  lab_orders -> lab_order_items [arrowtail=tee, arrowhead=crowodot]; // lab_order_id, visit_id
+  lab_tests -> lab_order_items [arrowtail=tee, arrowhead=crowodot]; // lab_test_id
+  medical_procedures -> visit_procedures [arrowtail=tee, arrowhead=crowodot]; // procedure_id
+  medical_staff -> doctors [arrowtail=tee, arrowhead=teeodot]; // staff_id
+  medicines -> medicine_stock_movements [arrowtail=tee, arrowhead=crowodot]; // medicine_id
+  medicines -> prescription_items [arrowtail=tee, arrowhead=crowodot]; // medicine_id
+  patients -> visits [arrowtail=tee, arrowhead=crowodot]; // patient_id
+  prescription_items -> invoice_items [arrowtail=teeodot, arrowhead=teeodot]; // prescription_item_id, visit_id
+  prescription_items -> medicine_stock_movements [arrowtail=teeodot, arrowhead=teeodot]; // prescription_item_id, medicine_id
+  prescriptions -> prescription_items [arrowtail=tee, arrowhead=crowodot]; // prescription_id, visit_id
+  roles -> users [arrowtail=tee, arrowhead=crowodot]; // role_code
+  users -> audit_logs [arrowtail=tee, arrowhead=crowodot, constraint=false, style=dashed, color="#aebaca"]; // actor_user_id
+  users -> invoices [arrowtail=tee, arrowhead=crowodot, constraint=false, style=dashed, color="#aebaca"]; // issued_by
+  users -> lab_results [arrowtail=tee, arrowhead=crowodot, constraint=false, style=dashed, color="#aebaca"]; // entered_by
+  users -> medical_staff [arrowtail=teeodot, arrowhead=teeodot]; // user_id
+  users -> medicine_stock_movements [arrowtail=tee, arrowhead=crowodot, constraint=false, style=dashed, color="#aebaca"]; // recorded_by
+  users -> payments [arrowtail=tee, arrowhead=crowodot, constraint=false, style=dashed, color="#aebaca"]; // received_by
+  users -> prescriptions [arrowtail=teeodot, arrowhead=crowodot, constraint=false, style=dashed, color="#aebaca"]; // dispensed_by
+  users -> visits [arrowtail=tee, arrowhead=crowodot, constraint=false, style=dashed, color="#aebaca"]; // registered_by
+  visit_procedures -> invoice_items [arrowtail=teeodot, arrowhead=teeodot]; // visit_procedure_id, visit_id
+  visit_queue_counters -> visits [arrowtail=tee, arrowhead=crowodot]; // clinic_id, visit_date
+  visits -> audit_logs [arrowtail=tee, arrowhead=crowodot]; // visit_id
+  visits -> examinations [arrowtail=tee, arrowhead=teeodot]; // visit_id
+  visits -> invoices [arrowtail=tee, arrowhead=teeodot]; // visit_id
+  visits -> lab_orders [arrowtail=tee, arrowhead=crowodot]; // visit_id
+  visits -> prescriptions [arrowtail=tee, arrowhead=crowodot]; // visit_id
+  visits -> visit_procedures [arrowtail=tee, arrowhead=crowodot]; // visit_id
+
+  invoices -> invoice_balances [dir=forward, arrowhead=vee, style=dashed, color="#9b704e"];
+  invoice_items -> invoice_balances [dir=forward, arrowhead=vee, style=dashed, color="#9b704e"];
+  payments -> invoice_balances [dir=forward, arrowhead=vee, style=dashed, color="#9b704e"];
+}
