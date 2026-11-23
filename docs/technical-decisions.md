@@ -8,6 +8,21 @@ Setiap akun memiliki satu peran melalui `users.role_code`. Profil tenaga medis d
 
 Satu kunjungan memiliki paling banyak satu pemeriksaan dan satu tagihan. Pemeriksaan dapat menyimpan satu diagnosis utama dan beberapa diagnosis sekunder. Tarif kunjungan dan harga satuan pada tindakan, resep, lab, serta tagihan disalin ke transaksi agar riwayat biaya konsisten saat tarif master diperbarui. Foreign key komposit memastikan rincian tagihan berasal dari kunjungan yang sama. [ERD SIMRS](erd.png)
 
+## Autentikasi dan izin
+
+Yii2 menerbitkan token Bearer acak dengan masa berlaku delapan jam. PostgreSQL menyimpan hash SHA-256 token, dan logout menghapus hash sesi yang sedang dipakai. React menyimpan token di `sessionStorage` untuk sesi tab dan memuat ulang profil melalui Yii2 saat halaman di-refresh. [Autentikasi REST Yii2](https://www.yiiframework.com/doc/guide/2.0/en/rest-authentication)
+
+| Peran | Izin modul |
+| --- | --- |
+| Administrator | `master.manage`, `users.manage`, `dashboard.read`, `audit.read` |
+| Petugas Pendaftaran | `patients.manage`, `visits.register`, `visits.queue` |
+| Dokter | `visits.queue`, `examinations.manage`, `procedures.manage`, `prescriptions.create`, `lab.request`, `lab.results.read` |
+| Petugas Farmasi | `prescriptions.dispense` |
+| Petugas Laboratorium | `lab.requests.read`, `lab.results.read`, `lab.results.write` |
+| Kasir | `billing.manage` |
+
+Action Yii2 memakai `Yii::$app->user->can($permission)` untuk memeriksa izin. Rute Express memakai `requirePermission(permission)` dan menerima keputusan dari Yii2. [Otorisasi Yii2](https://www.yiiframework.com/doc/guide/2.0/en/security-authorization)
+
 ## Rancangan transaksi aplikasi
 
 | Skenario | Aturan basis data dan alur transaksi |

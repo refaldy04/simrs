@@ -24,6 +24,21 @@ digraph simrs {
         <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">password_hash</TD></TR>
         <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">is_active</TD></TR>
       </TABLE>>];
+    auth_tokens [label=<
+      <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" COLOR="#bdcee1" BGCOLOR="#FFFFFF">
+        <TR><TD COLSPAN="2" ALIGN="LEFT" BGCOLOR="#244568"><FONT COLOR="#FFFFFF"><B>auth_tokens</B></FONT></TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>PK</B></FONT></TD><TD ALIGN="LEFT">token_hash</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>FK</B></FONT></TD><TD ALIGN="LEFT">user_id</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">created_at</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">expires_at</TD></TR>
+      </TABLE>>];
+    auth_login_attempts [label=<
+      <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" COLOR="#bdcee1" BGCOLOR="#FFFFFF">
+        <TR><TD COLSPAN="2" ALIGN="LEFT" BGCOLOR="#244568"><FONT COLOR="#FFFFFF"><B>auth_login_attempts</B></FONT></TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>PK</B></FONT></TD><TD ALIGN="LEFT">subject_hash</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">window_started_at</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">attempt_count</TD></TR>
+      </TABLE>>];
     medical_staff [label=<
       <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4" COLOR="#bdcee1" BGCOLOR="#FFFFFF">
         <TR><TD COLSPAN="2" ALIGN="LEFT" BGCOLOR="#244568"><FONT COLOR="#FFFFFF"><B>medical_staff</B></FONT></TD></TR>
@@ -326,6 +341,7 @@ digraph simrs {
   prescriptions -> prescription_items [arrowtail=tee, arrowhead=crowodot]; // prescription_id, visit_id
   roles -> users [arrowtail=tee, arrowhead=crowodot]; // role_code
   users -> audit_logs [arrowtail=tee, arrowhead=crowodot, constraint=false, style=dashed, color="#aebaca"]; // actor_user_id
+  users -> auth_tokens [arrowtail=tee, arrowhead=crowodot]; // user_id
   users -> invoices [arrowtail=tee, arrowhead=crowodot, constraint=false, style=dashed, color="#aebaca"]; // issued_by
   users -> lab_results [arrowtail=tee, arrowhead=crowodot, constraint=false, style=dashed, color="#aebaca"]; // entered_by
   users -> medical_staff [arrowtail=teeodot, arrowhead=teeodot]; // user_id

@@ -41,6 +41,8 @@ services:
 
   node-api:
     build: ./services
+    environment:
+      CORE_API_TARGET: http://backend:8080
     ports:
       - "127.0.0.1:${SERVICES_PORT:-3000}:3000"
     healthcheck:

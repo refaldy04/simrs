@@ -58,6 +58,31 @@ ALTER TABLE public.audit_logs ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
 
 
 --
+-- Name: auth_login_attempts; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.auth_login_attempts (
+    subject_hash character varying(64) NOT NULL,
+    window_started_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    attempt_count smallint NOT NULL,
+    CONSTRAINT auth_login_attempts_attempt_count_check CHECK ((attempt_count > 0))
+);
+
+
+--
+-- Name: auth_tokens; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.auth_tokens (
+    token_hash character varying(64) NOT NULL,
+    user_id bigint NOT NULL,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    expires_at timestamp with time zone DEFAULT (CURRENT_TIMESTAMP + '08:00:00'::interval) NOT NULL,
+    CONSTRAINT auth_tokens_check CHECK ((expires_at > created_at))
+);
+
+
+--
 -- Name: clinics; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -801,6 +826,22 @@ ALTER TABLE ONLY public.audit_logs
 
 
 --
+-- Name: auth_login_attempts auth_login_attempts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.auth_login_attempts
+    ADD CONSTRAINT auth_login_attempts_pkey PRIMARY KEY (subject_hash);
+
+
+--
+-- Name: auth_tokens auth_tokens_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.auth_tokens
+    ADD CONSTRAINT auth_tokens_pkey PRIMARY KEY (token_hash);
+
+
+--
 -- Name: clinics clinics_code_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1264,6 +1305,27 @@ CREATE INDEX audit_logs_visit_time_idx ON public.audit_logs USING btree (visit_i
 
 
 --
+-- Name: auth_login_attempts_window_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX auth_login_attempts_window_idx ON public.auth_login_attempts USING btree (window_started_at);
+
+
+--
+-- Name: auth_tokens_expiry_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX auth_tokens_expiry_idx ON public.auth_tokens USING btree (expires_at);
+
+
+--
+-- Name: auth_tokens_user_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX auth_tokens_user_idx ON public.auth_tokens USING btree (user_id);
+
+
+--
 -- Name: diagnoses_primary_per_exam_uq; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -1403,6 +1465,14 @@ ALTER TABLE ONLY public.audit_logs
 
 ALTER TABLE ONLY public.audit_logs
     ADD CONSTRAINT audit_logs_visit_id_fkey FOREIGN KEY (visit_id) REFERENCES public.visits(id);
+
+
+--
+-- Name: auth_tokens auth_tokens_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.auth_tokens
+    ADD CONSTRAINT auth_tokens_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 
 --

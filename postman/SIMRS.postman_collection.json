@@ -5,17 +5,265 @@
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
-    { "key": "backendUrl", "value": "http://127.0.0.1:8080" },
-    { "key": "servicesUrl", "value": "http://127.0.0.1:3000" }
+    {
+      "key": "backendUrl",
+      "value": "http://127.0.0.1:8080"
+    },
+    {
+      "key": "servicesUrl",
+      "value": "http://127.0.0.1:3000"
+    },
+    {
+      "key": "demoUsername",
+      "value": "demo.dokter.umum"
+    },
+    {
+      "key": "demoPassword",
+      "value": "SimrsDemo2026!"
+    },
+    {
+      "key": "accessToken",
+      "value": ""
+    }
   ],
   "item": [
     {
       "name": "Health Yii2 dan PostgreSQL",
-      "request": { "method": "GET", "url": "{{backendUrl}}/health" }
+      "request": {
+        "method": "GET",
+        "url": "{{backendUrl}}/health"
+      }
     },
     {
       "name": "Health Node.js",
-      "request": { "method": "GET", "url": "{{servicesUrl}}/health" }
+      "request": {
+        "method": "GET",
+        "url": "{{servicesUrl}}/health"
+      }
+    },
+    {
+      "name": "Autentikasi dan Akses",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{accessToken}}",
+            "type": "string"
+          }
+        ]
+      },
+      "item": [
+        {
+          "name": "Profil tanpa token",
+          "request": {
+            "method": "GET",
+            "url": "{{backendUrl}}/auth/me",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 401\", function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login dokter demo",
+          "request": {
+            "method": "POST",
+            "url": "{{backendUrl}}/auth/login",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{demoUsername}}\",\n  \"password\": \"{{demoPassword}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.collectionVariables.unset(\"accessToken\");",
+                  "if (pm.response.code === 200) {",
+                  "    const session = pm.response.json();",
+                  "    pm.test(\"Peran dokter\", function () {",
+                  "        pm.expect(session.user.role_code).to.equal(\"doctor\");",
+                  "        pm.expect(session.access_token).to.match(/^[0-9a-f]{64}$/);",
+                  "    });",
+                  "    pm.collectionVariables.set(\"accessToken\", session.access_token);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Profil dengan token",
+          "request": {
+            "method": "GET",
+            "url": "{{backendUrl}}/auth/me"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Izin hasil lab\", function () {",
+                  "    pm.expect(pm.response.json().permissions).to.include(\"lab.results.read\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Izin hasil lab di Yii2",
+          "request": {
+            "method": "GET",
+            "url": "{{backendUrl}}/auth/access?permission=lab.results.read"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Tolak izin tagihan di Yii2",
+          "request": {
+            "method": "GET",
+            "url": "{{backendUrl}}/auth/access?permission=billing.manage"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 403\", function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Izin hasil lab di Node.js",
+          "request": {
+            "method": "GET",
+            "url": "{{servicesUrl}}/access/laboratory"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Tolak izin dashboard di Node.js",
+          "request": {
+            "method": "GET",
+            "url": "{{servicesUrl}}/access/dashboard"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 403\", function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "url": "{{backendUrl}}/auth/logout"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 204\", function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Profil setelah token dicabut",
+          "request": {
+            "method": "GET",
+            "url": "{{backendUrl}}/auth/me"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 401\", function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "pm.collectionVariables.unset(\"accessToken\");"
+                ]
+              }
+            }
+          ]
+        }
+      ]
     }
   ]
 }

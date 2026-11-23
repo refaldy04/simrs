@@ -37,7 +37,7 @@ docker compose ps
 | API Node.js | `http://127.0.0.1:3000/health` |
 | PostgreSQL | `127.0.0.1:5432` |
 
-Halaman React menampilkan status kedua API. Status Yii2 mencakup koneksi ke PostgreSQL. Detail endpoint dan koleksi pengujian tersedia di dokumentasi API. [Dokumentasi API](docs/api.md)
+Setelah masuk, React menampilkan hak akses akun dan status kedua API. Status Yii2 mencakup koneksi ke PostgreSQL. [Dokumentasi API](docs/api.md)
 
 ### Menerapkan perubahan kode di Docker
 
@@ -89,6 +89,19 @@ docker compose exec -T db sh -ec \
 
 Seed memuat lima kunjungan fiktif pada **23 November 2026**, termasuk antrean, resep, pemeriksaan lab, serta tagihan lunas, dibayar sebagian, dan belum dibayar. Seed dapat dijalankan ulang. Tagihan `DEMO-INV-001` menandai bahwa data demo sudah tersedia.
 
-Akun fixture memakai kata sandi `SimrsDemo2026!`. Nama pengguna yang tersedia adalah `demo.admin`, `demo.pendaftaran`, `demo.dokter.umum`, `demo.dokter.dalam`, `demo.farmasi`, `demo.lab`, dan `demo.kasir`.
-
 `schema.sql` adalah snapshot DDL yang dihasilkan dari migrasi. Diagram dan sumbernya tersedia di dokumentasi. [Skema PostgreSQL](database/schema.sql) · [ERD](docs/erd.png) · [Sumber Graphviz](docs/erd.dot) · [Keputusan teknis](docs/technical-decisions.md)
+
+### Masuk dengan akun demo
+
+Setelah menjalankan migrasi dan seed, buka frontend dan masuk menggunakan salah satu akun berikut. Semua akun demo memakai kata sandi `SimrsDemo2026!`. [Buka SIMRS](http://127.0.0.1:5173/)
+
+| Peran | Nama pengguna |
+| --- | --- |
+| Administrator | `demo.admin` |
+| Petugas Pendaftaran | `demo.pendaftaran` |
+| Dokter | `demo.dokter.umum` atau `demo.dokter.dalam` |
+| Petugas Farmasi | `demo.farmasi` |
+| Petugas Laboratorium | `demo.lab` |
+| Kasir | `demo.kasir` |
+
+Folder Autentikasi dan Akses pada koleksi Postman menguji login, profil, izin kedua API, dan logout dengan akun dokter demo. [Koleksi Postman](postman/SIMRS.postman_collection.json)
