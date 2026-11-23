@@ -1,0 +1,1 @@
+-- Skema PostgreSQL diisi pada tahap perancangan basis data.

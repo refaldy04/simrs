@@ -1,0 +1,6 @@
+/.env
+/backend/runtime/
+/backend/vendor/
+/frontend/dist/
+/frontend/node_modules/
+/services/node_modules/

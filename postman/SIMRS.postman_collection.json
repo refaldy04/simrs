@@ -1,0 +1,21 @@
+{
+  "info": {
+    "name": "SIMRS",
+    "description": "Pengujian REST API SIMRS.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "backendUrl", "value": "http://127.0.0.1:8080" },
+    { "key": "servicesUrl", "value": "http://127.0.0.1:3000" }
+  ],
+  "item": [
+    {
+      "name": "Health Yii2 dan PostgreSQL",
+      "request": { "method": "GET", "url": "{{backendUrl}}/health" }
+    },
+    {
+      "name": "Health Node.js",
+      "request": { "method": "GET", "url": "{{servicesUrl}}/health" }
+    }
+  ]
+}

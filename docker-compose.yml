@@ -1,0 +1,71 @@
+name: simrs-real-case
+
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-simrs}
+      POSTGRES_USER: ${POSTGRES_USER:-simrs}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Salin .env.example ke .env dan isi POSTGRES_PASSWORD}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", 'pg_isready -h 127.0.0.1 -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build: ./backend
+    environment:
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_NAME: ${POSTGRES_DB:-simrs}
+      DB_USER: ${POSTGRES_USER:-simrs}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?Salin .env.example ke .env dan isi POSTGRES_PASSWORD}
+      YII_COOKIE_VALIDATION_KEY: ${YII_COOKIE_VALIDATION_KEY:?Isi YII_COOKIE_VALIDATION_KEY di .env}
+    ports:
+      - "127.0.0.1:${BACKEND_PORT:-8080}:8080"
+    volumes:
+      - ./database/migrations:/app/database/migrations:ro
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "php", "-r", "exit(@file_get_contents('http://127.0.0.1:8080/health') === false ? 1 : 0);"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  node-api:
+    build: ./services
+    ports:
+      - "127.0.0.1:${SERVICES_PORT:-3000}:3000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/health').then(response => process.exit(response.ok ? 0 : 1))"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  frontend:
+    build: ./frontend
+    environment:
+      CORE_API_TARGET: http://backend:8080
+      SERVICES_API_TARGET: http://node-api:3000
+    ports:
+      - "127.0.0.1:${FRONTEND_PORT:-5173}:5173"
+    depends_on:
+      backend:
+        condition: service_healthy
+      node-api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:5173/').then(response => process.exit(response.ok ? 0 : 1))"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  postgres-data:
