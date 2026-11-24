@@ -677,6 +677,7 @@ CREATE TABLE public.prescriptions (
     prescribed_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     dispensed_by bigint,
     dispensed_at timestamp with time zone,
+    idempotency_key uuid,
     CONSTRAINT prescriptions_check CHECK ((dispensed_at >= prescribed_at)),
     CONSTRAINT prescriptions_check1 CHECK ((((status)::text = 'dispensed'::text) = (dispensed_by IS NOT NULL))),
     CONSTRAINT prescriptions_check2 CHECK ((((status)::text = 'dispensed'::text) = (dispensed_at IS NOT NULL))),
@@ -1408,6 +1409,13 @@ CREATE INDEX prescription_items_prescription_idx ON public.prescription_items US
 --
 
 CREATE INDEX prescriptions_status_time_idx ON public.prescriptions USING btree (status, prescribed_at);
+
+
+--
+-- Name: prescriptions_visit_idempotency_uq; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX prescriptions_visit_idempotency_uq ON public.prescriptions USING btree (visit_id, idempotency_key);
 
 
 --

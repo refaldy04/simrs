@@ -6,6 +6,7 @@ const currency = new Intl.NumberFormat('id-ID', {
 });
 
 const date = new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeZone: 'UTC' });
+const dateTime = new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Jakarta' });
 const localDate = new Intl.DateTimeFormat('en', {
   year: 'numeric',
   month: '2-digit',
@@ -20,6 +21,11 @@ export function formatCurrency(value) {
 export function formatDate(value) {
   const day = new Date(value + 'T00:00:00Z');
   return Number.isNaN(day.getTime()) ? value : date.format(day);
+}
+
+export function formatDateTime(value) {
+  const instant = new Date(value);
+  return Number.isNaN(instant.getTime()) ? value : dateTime.format(instant);
 }
 
 export function formatTime(value) {

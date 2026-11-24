@@ -49,9 +49,17 @@ Revisi pemeriksaan yang sudah selesai atau memiliki tagihan memerlukan alasan. D
 
 Tindakan kunjungan merujuk `medical_procedures` dan menyimpan salinan tarif satuan. Jumlah mewakili pengulangan tindakan yang sama. Penambahan memeriksa tindakan aktif yang sama di bawah kunci kunjungan. Koreksi memeriksa jumlah terakhir yang dibaca. Pembatalan mengisi `cancelled_at`, sehingga catatan tindakan tetap bisa ditelusuri.
 
-Sebelum tagihan terbit, estimasi dihitung dari biaya pendaftaran dan tindakan aktif. Setelah tagihan terbit, transaksi perubahan mengunci kunjungan lebih dulu lalu baris invoice, memperbarui komponen tindakan, dan menghitung saldo dari `invoice_balances`. Total di bawah pembayaran yang sudah diterima membatalkan seluruh perubahan. Jika revisi menghasilkan saldo baru, kunjungan yang sudah selesai kembali berstatus menunggu pembayaran. Kunjungan dengan tagihan yang sudah tercakup penuh berstatus selesai.
+Sebelum tagihan terbit, estimasi dihitung dari biaya pendaftaran, tindakan aktif, dan obat yang sudah diserahkan. Setelah tagihan terbit, transaksi perubahan mengunci kunjungan lebih dulu lalu baris invoice, memperbarui komponen tindakan, dan menghitung saldo dari `invoice_balances`. Total di bawah pembayaran yang sudah diterima membatalkan seluruh perubahan. Jika revisi menghasilkan saldo baru, kunjungan yang sudah selesai kembali berstatus menunggu pembayaran. Kunjungan dengan tagihan yang sudah tercakup penuh berstatus selesai.
 
 Audit menyimpan pengguna, alasan, dan snapshot tindakan serta ringkasan tagihan sebelum dan sesudah perubahan. Operasi penerbitan tagihan dan pembayaran yang juga menulis status kunjungan mengikuti urutan kunci kunjungan lalu invoice. [Penguncian baris PostgreSQL](https://www.postgresql.org/docs/17/explicit-locking.html#LOCKING-ROWS)
+
+## Resep dan stok obat
+
+Pembuatan resep mengunci kunjungan, memeriksa jumlah yang diminta terhadap stok saat itu, lalu menyimpan harga satuan pada item resep. Stok diambil saat penyerahan. Indeks unik per kunjungan dan `idempotency_key` mencegah resep ganda ketika permintaan yang sama dikirim ulang. Resep demo yang dibuat sebelum migrasi bisa tetap dibaca dan diserahkan.
+
+Penyerahan mengunci kunjungan dan resep, lalu invoice bila ada. Baris obat diperbarui menurut urutan ID untuk menjaga urutan kunci konsisten. Setiap `UPDATE` mensyaratkan obat aktif dengan `stock_quantity >= quantity`. Bila satu item gagal, transaksi membatalkan seluruh pengurangan stok. Status resep, `medicine_stock_movements`, audit, dan komponen obat pada tagihan disimpan dalam transaksi yang sama. Pengulangan terhadap resep berstatus `dispensed` mengembalikan penyerahan tersebut. Constraint unik pada `prescription_item_id` menjaga satu mutasi penyerahan per item. [Penguncian baris PostgreSQL](https://www.postgresql.org/docs/17/explicit-locking.html#LOCKING-ROWS)
+
+Riwayat penggunaan obat mengambil resep yang sudah diserahkan berdasarkan pasien dari kunjungan dokter. `tests/pharmacy-stock.integration.mjs` menjalankan dua penyerahan pada stok yang cukup untuk satu resep dan memeriksa rollback resep dengan beberapa obat. [Uji integrasi stok](../tests/pharmacy-stock.integration.mjs)
 
 ## Rancangan transaksi aplikasi
 

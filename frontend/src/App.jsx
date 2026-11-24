@@ -5,6 +5,7 @@ import { LoadStatus } from './components/LoadStatus.jsx';
 import { ExaminationPage } from './examination/ExaminationPage.jsx';
 import { LoginForm } from './LoginForm.jsx';
 import { MasterDataPage } from './master/MasterDataPage.jsx';
+import { PharmacyPage } from './pharmacy/PharmacyPage.jsx';
 import { RegistrationPage } from './registration/RegistrationPage.jsx';
 import { getProfile, logout } from './service/authService.js';
 import { WorkspaceOverview } from './WorkspaceOverview.jsx';
@@ -105,13 +106,16 @@ export function App() {
   const canReadQueue = permissions.includes('visits.queue');
   const canExamine = permissions.includes('examinations.manage');
   const canManageProcedures = permissions.includes('procedures.manage');
+  const canPrescribe = permissions.includes('prescriptions.create');
+  const canDispense = permissions.includes('prescriptions.dispense');
   const masterRoute = canOpenMaster ? /^#\/master-data(?:\/([a-z-]+))?$/.exec(locationHash) : null;
   const registrationRoute = canReadQueue
     ? /^#\/registration(?:\/(schedules|queue))?(?:\?date=(\d{4}-\d{2}-\d{2}))?$/.exec(locationHash)
     : null;
   const examinationRoute = canExamine ? /^#\/examinations\/([1-9]\d{0,18})$/.exec(locationHash) : null;
   const onQueue = Boolean(registrationRoute || examinationRoute);
-  const onOverview = !masterRoute && !onQueue;
+  const onPharmacy = canDispense && locationHash === '#/pharmacy';
+  const onOverview = !masterRoute && !onQueue && !onPharmacy;
 
   let content = <WorkspaceOverview permissions={permissions} />;
   if (masterRoute) {
@@ -135,9 +139,12 @@ export function App() {
         visitId={visitId}
         token={session.token}
         canManageProcedures={canManageProcedures}
+        canPrescribe={canPrescribe}
         onUnauthorized={expireSession}
       />
     );
+  } else if (onPharmacy) {
+    content = <PharmacyPage token={session.token} onUnauthorized={expireSession} />;
   }
 
   return (
@@ -158,7 +165,7 @@ export function App() {
       </header>
       <main className="mx-auto grid max-w-7xl gap-4 px-4 py-5 sm:px-6 sm:py-7">
         {notice && <Alert severity="error">{notice}</Alert>}
-        {(canOpenMaster || canReadQueue) && (
+        {(canOpenMaster || canReadQueue || canDispense) && (
           <nav aria-label="Navigasi utama" className="flex flex-wrap gap-2">
             <Button href="#/" variant={onOverview ? 'contained' : 'text'} aria-current={onOverview ? 'page' : undefined}>
               Ringkasan
@@ -175,6 +182,11 @@ export function App() {
                 aria-current={onQueue ? 'page' : undefined}
               >
                 {canRegister ? 'Pendaftaran & antrean' : 'Jadwal & antrean'}
+              </Button>
+            )}
+            {canDispense && (
+              <Button href="#/pharmacy" variant={onPharmacy ? 'contained' : 'text'} aria-current={onPharmacy ? 'page' : undefined}>
+                Farmasi
               </Button>
             )}
           </nav>

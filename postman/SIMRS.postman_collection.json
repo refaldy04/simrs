@@ -60,6 +60,18 @@
     {
       "key": "procedureQuantity",
       "value": ""
+    },
+    {
+      "key": "prescriptionVisitId",
+      "value": ""
+    },
+    {
+      "key": "dispensedPrescriptionId",
+      "value": ""
+    },
+    {
+      "key": "dispensedTimestamp",
+      "value": ""
     }
   ],
   "item": [
@@ -1399,6 +1411,342 @@
                   "pm.collectionVariables.unset(\"procedureBilledVisitId\");",
                   "pm.collectionVariables.unset(\"procedureItemId\");",
                   "pm.collectionVariables.unset(\"procedureQuantity\");"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Resep dan Farmasi",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{accessToken}}",
+            "type": "string"
+          }
+        ]
+      },
+      "item": [
+        {
+          "name": "Login dokter untuk resep",
+          "request": {
+            "method": "POST",
+            "url": "{{backendUrl}}/auth/login",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"demo.dokter.dalam\",\n  \"password\": \"{{demoPassword}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.collectionVariables.unset(\"accessToken\");",
+                  "pm.collectionVariables.unset(\"prescriptionVisitId\");",
+                  "pm.collectionVariables.unset(\"dispensedPrescriptionId\");",
+                  "pm.collectionVariables.unset(\"dispensedTimestamp\");",
+                  "if (pm.response.code === 200) pm.collectionVariables.set(\"accessToken\", pm.response.json().access_token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ambil kunjungan resep demo",
+          "request": {
+            "method": "GET",
+            "url": "{{backendUrl}}/registration/visits?date={{registrationDate}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const candidate = pm.response.json().items.find(function (row) { return row.medical_record_no === \"DEMO-RM-004\"; });",
+                  "pm.test(\"Kunjungan resep milik dokter tersedia\", function () {",
+                  "    pm.expect(candidate).to.be.an(\"object\");",
+                  "});",
+                  "if (candidate) pm.collectionVariables.set(\"prescriptionVisitId\", candidate.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Baca resep dan pilihan obat aktif",
+          "request": {
+            "method": "GET",
+            "url": "{{backendUrl}}/prescriptions/visits/{{prescriptionVisitId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Resep demo berisi item dan pilihan obat memuat stok\", function () {",
+                  "    const recipeContext = pm.response.json();",
+                  "    pm.expect(recipeContext.can_create).to.be.true;",
+                  "    pm.expect(recipeContext.medicines[0].stock_quantity).to.be.a(\"number\");",
+                  "    pm.expect(recipeContext.prescriptions.some(function (rx) {",
+                  "        return rx.items.some(function (item) { return item.code === \"DEMO-OBT-002\"; });",
+                  "    })).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Tolak jumlah resep nol",
+          "request": {
+            "method": "POST",
+            "url": "{{backendUrl}}/prescriptions/visits/{{prescriptionVisitId}}",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idempotency_key\": \"7dc1cf4f-f128-4b74-9b8e-a8aafb7e1550\",\n  \"items\": [\n    {\n      \"medicine_id\": \"1\",\n      \"dose\": \"Dosis simulasi\",\n      \"frequency\": \"Frekuensi simulasi\",\n      \"quantity\": 0\n    }\n  ]\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 422\", function () {",
+                  "    pm.response.to.have.status(422);",
+                  "});",
+                  "pm.test(\"Kesalahan menunjuk jumlah item\", function () {",
+                  "    pm.expect(pm.response.json().errors[\"items.0.quantity\"]).to.be.a(\"string\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Baca riwayat obat pasien",
+          "request": {
+            "method": "GET",
+            "url": "{{backendUrl}}/prescriptions/visits/{{prescriptionVisitId}}/history"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Riwayat hanya memuat resep yang sudah diserahkan\", function () {",
+                  "    pm.expect(pm.response.json().items.every(function (rx) { return rx.status === \"dispensed\"; })).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Tolak antrean farmasi bagi dokter",
+          "request": {
+            "method": "GET",
+            "url": "{{backendUrl}}/pharmacy/prescriptions"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 403\", function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Logout dokter resep",
+          "request": {
+            "method": "POST",
+            "url": "{{backendUrl}}/auth/logout"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 204\", function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});",
+                  "pm.collectionVariables.unset(\"accessToken\");"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login petugas farmasi",
+          "request": {
+            "method": "POST",
+            "url": "{{backendUrl}}/auth/login",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"demo.farmasi\",\n  \"password\": \"{{demoPassword}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.collectionVariables.unset(\"accessToken\");",
+                  "if (pm.response.code === 200) pm.collectionVariables.set(\"accessToken\", pm.response.json().access_token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Baca riwayat penyerahan resep demo",
+          "request": {
+            "method": "GET",
+            "url": "{{backendUrl}}/pharmacy/prescriptions?status=dispensed&q=DEMO-RM-001"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const sentRecipe = pm.response.json().items.find(function (rx) { return rx.medical_record_no === \"DEMO-RM-001\"; });",
+                  "pm.test(\"Resep sudah diserahkan dan memiliki waktu penyerahan\", function () {",
+                  "    pm.expect(sentRecipe.status).to.equal(\"dispensed\");",
+                  "    pm.expect(sentRecipe.dispensed_at).to.be.a(\"string\");",
+                  "});",
+                  "if (sentRecipe) {",
+                  "    pm.collectionVariables.set(\"dispensedPrescriptionId\", sentRecipe.id);",
+                  "    pm.collectionVariables.set(\"dispensedTimestamp\", sentRecipe.dispensed_at);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ulangi konfirmasi penyerahan yang sudah tercatat",
+          "request": {
+            "method": "POST",
+            "url": "{{backendUrl}}/pharmacy/prescriptions/{{dispensedPrescriptionId}}/dispense"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Resep dan waktu penyerahan sama\", function () {",
+                  "    const replay = pm.response.json().prescription;",
+                  "    pm.expect(replay.id).to.equal(pm.collectionVariables.get(\"dispensedPrescriptionId\"));",
+                  "    pm.expect(replay.dispensed_at).to.equal(pm.collectionVariables.get(\"dispensedTimestamp\"));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Tolak akses dokter untuk petugas farmasi",
+          "request": {
+            "method": "GET",
+            "url": "{{backendUrl}}/prescriptions/visits/{{prescriptionVisitId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 403\", function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Logout petugas farmasi",
+          "request": {
+            "method": "POST",
+            "url": "{{backendUrl}}/auth/logout"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 204\", function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});",
+                  "pm.collectionVariables.unset(\"accessToken\");",
+                  "pm.collectionVariables.unset(\"prescriptionVisitId\");",
+                  "pm.collectionVariables.unset(\"dispensedPrescriptionId\");",
+                  "pm.collectionVariables.unset(\"dispensedTimestamp\");"
                 ]
               }
             }

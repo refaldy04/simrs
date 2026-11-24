@@ -2,13 +2,14 @@ import { Alert, Button, Paper, Tab, Tabs, Typography } from '@mui/material';
 import { useEffect, useState } from 'react';
 import { LoadStatus } from '../components/LoadStatus.jsx';
 import { formatDate } from '../format.js';
+import { PrescriptionPanel } from '../prescription/PrescriptionPanel.jsx';
 import { VisitProcedures } from '../procedure/VisitProcedures.jsx';
 import { VisitStatus } from '../registration/VisitTable.jsx';
 import { getExamination } from '../service/examinationService.js';
 import { ExaminationForm } from './ExaminationForm.jsx';
 import { MedicalRecordHistory } from './MedicalRecordHistory.jsx';
 
-export function ExaminationPage({ visitId, token, canManageProcedures, onUnauthorized }) {
+export function ExaminationPage({ visitId, token, canManageProcedures, canPrescribe, onUnauthorized }) {
   const [tab, setTab] = useState('examination');
   const [context, setContext] = useState(null);
   const [loadError, setLoadError] = useState('');
@@ -56,6 +57,7 @@ export function ExaminationPage({ visitId, token, canManageProcedures, onUnautho
   }
 
   const visit = context?.visit;
+  const hasTabs = canManageProcedures || canPrescribe;
   const queueLink = '#/registration/queue' + (visit ? '?date=' + visit.visit_date : '');
 
   return (
@@ -84,13 +86,14 @@ export function ExaminationPage({ visitId, token, canManageProcedures, onUnautho
       {notice && <Alert severity="success" role="status">{notice}</Alert>}
       {context && (
         <>
-          {canManageProcedures && (
+          {hasTabs && (
             <Tabs value={tab} onChange={(_event, value) => setTab(value)} aria-label="Bagian kunjungan" variant="scrollable">
               <Tab id="examination-tab" aria-controls="examination-panel" label="Pemeriksaan & RME" value="examination" />
-              <Tab id="procedures-tab" aria-controls="procedures-panel" label="Tindakan & tagihan" value="procedures" />
+              {canManageProcedures && <Tab id="procedures-tab" aria-controls="procedures-panel" label="Tindakan & tagihan" value="procedures" />}
+              {canPrescribe && <Tab id="prescription-tab" aria-controls="prescription-panel" label="Resep" value="prescription" />}
             </Tabs>
           )}
-          <div role="tabpanel" id="examination-panel" aria-labelledby={canManageProcedures ? 'examination-tab' : undefined} hidden={tab !== 'examination'}>
+          <div role="tabpanel" id="examination-panel" aria-labelledby={hasTabs ? 'examination-tab' : undefined} hidden={tab !== 'examination'}>
             <div className="grid min-w-0 gap-4">
               <ExaminationForm
                 key={context.examination?.updated_at ?? 'new'}
@@ -114,6 +117,17 @@ export function ExaminationPage({ visitId, token, canManageProcedures, onUnautho
                   onUnauthorized={onUnauthorized}
                 />
               )}
+            </div>
+          )}
+          {canPrescribe && (
+            <div role="tabpanel" id="prescription-panel" aria-labelledby="prescription-tab" hidden={tab !== 'prescription'}>
+              <PrescriptionPanel
+                visitId={visitId}
+                visitStatus={visit.status}
+                token={token}
+                active={tab === 'prescription'}
+                onUnauthorized={onUnauthorized}
+              />
             </div>
           )}
         </>

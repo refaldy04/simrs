@@ -134,7 +134,7 @@ Kirim token Bearer dengan izin `procedures.manage`. `{id}` adalah ID kunjungan y
 | `PATCH /procedures/visits/{id}/items/{itemId}` | `200` dengan jumlah dan tagihan terbaru. |
 | `POST /procedures/visits/{id}/items/{itemId}/cancel` | `200` dengan tindakan berstatus dibatalkan dan komponen biaya terbaru. |
 
-Respons memuat `visit_status`, `can_write`, `requires_revision_reason`, `items`, `options`, dan `billing`. `billing.items` memuat jenis, deskripsi, jumlah, tarif satuan, dan subtotal. Harga dan total dikirim sebagai string desimal. Sebelum tagihan terbit, `billing.invoice` bernilai `null` dan panel menampilkan estimasi pendaftaran serta tindakan yang aktif. Setelah terbit, API membaca `invoice_items` dan `invoice_balances` untuk menampilkan rincian dan saldo tagihan.
+Respons memuat `visit_status`, `can_write`, `requires_revision_reason`, `items`, `options`, dan `billing`. `billing.items` memuat jenis, deskripsi, jumlah, tarif satuan, dan subtotal. Harga dan total dikirim sebagai string desimal. Sebelum tagihan terbit, `billing.invoice` bernilai `null` dan panel menampilkan estimasi pendaftaran, tindakan aktif, serta obat yang sudah diserahkan. Setelah terbit, API membaca `invoice_items` dan `invoice_balances` untuk menampilkan rincian dan saldo tagihan.
 
 Penambahan menerima `procedure_id` dari pilihan master dan `quantity` dengan nilai bawaan `1`. `expected_unit_price` opsional dan memakai string tarif dari `options`. API menyalin tarif master pada saat menyimpan tindakan. Tindakan yang sudah aktif dihitung melalui jumlah pada baris tersebut.
 
@@ -151,3 +151,35 @@ Untuk mengubah jumlah, kirim `quantity` baru dan `expected_quantity` dari baris 
 Izin yang kurang menghasilkan `403`. Kunjungan di luar penugasan dokter atau tindakan dari kunjungan lain menghasilkan `404`. Isian yang tidak valid menghasilkan `422` dengan `errors` per field. Konflik tarif, jumlah lama, tindakan aktif yang sama, atau total baru di bawah jumlah terbayar menghasilkan `409`.
 
 Folder **Tindakan dan Tagihan** memeriksa katalog, komponen biaya, pembacaan tagihan yang dibayar sebagian, dan konflik perubahan dengan seed demo. [Koleksi SIMRS](../postman/SIMRS.postman_collection.json)
+
+## Resep dan penyerahan obat
+
+`prescriptions.create` memberi dokter akses ke kunjungan yang dijadwalkan untuk akunnya. `prescriptions.dispense` memberi petugas farmasi akses ke antrean resep dan konfirmasi penyerahan. Harga diambil dari master obat saat resep dibuat dan disimpan sebagai string desimal pada item resep.
+
+| Metode dan path | Respons |
+| --- | --- |
+| `GET /prescriptions/visits/{id}` | `200` dengan `can_create`, `medicines` yang aktif, dan `prescriptions` kunjungan. |
+| `POST /prescriptions/visits/{id}` | `201` dengan `prescription` dan `replayed: false`. Pengiriman ulang resep yang sama mengembalikan `200` dan `replayed: true`. |
+| `POST /prescriptions/visits/{id}/{prescriptionId}/cancel` | `200` dengan resep berstatus `cancelled` jika masih menunggu atau sudah dibatalkan. |
+| `GET /prescriptions/visits/{id}/history` | `200` dengan resep pasien yang sudah diserahkan. |
+| `GET /pharmacy/prescriptions` | `200` dengan daftar resep, informasi pasien, item, dan stok saat ini. |
+| `POST /pharmacy/prescriptions/{id}/dispense` | `200` dengan resep berstatus `dispensed`. Pengiriman ulang mengembalikan penyerahan yang sudah tersimpan. |
+
+`{id}` adalah ID kunjungan di rute dokter dan ID resep di rute penyerahan. Riwayat dokter serta antrean farmasi memakai `page` dan `page_size`. Daftar farmasi menerima `q` untuk nama atau nomor rekam medis serta `status` dengan nilai `pending`, `dispensed`, `cancelled`, atau `all`. Nilai bawaan adalah `pending`, diurutkan dari resep tertua.
+
+Pembuatan resep membutuhkan pemeriksaan yang sudah disimpan, UUID `idempotency_key`, dan setidaknya satu obat. `expected_unit_price` opsional dan memakai harga dari pilihan obat. Kunci berlaku per kunjungan dan dapat dikirim kembali dengan isian klinis yang sama.
+
+```json
+{
+  "idempotency_key": "8c83fb09-1a7a-4975-99d6-a1f681e08bad",
+  "items": [
+    { "medicine_id": "2", "dose": "Dosis simulasi", "frequency": "Frekuensi simulasi", "quantity": 2, "expected_unit_price": "5000.00" }
+  ]
+}
+```
+
+Jumlah obat yang sama diperiksa secara agregat saat resep dibuat. Stok berkurang pada konfirmasi farmasi. Obat yang berhasil diserahkan menjadi komponen biaya kunjungan dan masuk ke tagihan yang sudah terbit bila ada. Pembatalan dan penyerahan memakai `POST` tanpa body.
+
+Peran yang tidak berwenang menghasilkan `403`. Kunjungan di luar penugasan atau resep di luar kunjungan menghasilkan `404`. Isian resep yang salah menghasilkan `422` dengan `errors` per field. Konflik stok, harga, status resep, atau penggunaan ulang kunci dengan isian berbeda menghasilkan `409`.
+
+Folder **Resep dan Farmasi** menguji akses dokter, riwayat obat, antrean, dan pengiriman ulang penyerahan. [Koleksi SIMRS](../postman/SIMRS.postman_collection.json)

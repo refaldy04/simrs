@@ -89,24 +89,60 @@ final class VisitCharges
             ])->execute();
     }
 
+    public function syncPrescription(array $invoice, string $prescriptionId): void
+    {
+        $this->db->createCommand(<<<'SQL'
+            INSERT INTO invoice_items (
+                invoice_id, visit_id, item_type, description, quantity, unit_price, prescription_item_id
+            )
+            SELECT :invoice_id, item.visit_id, 'medicine', medicine.name, item.quantity, item.unit_price, item.id
+            FROM prescription_items AS item
+            JOIN medicines AS medicine ON medicine.id = item.medicine_id
+            WHERE item.prescription_id = :prescription_id
+            ON CONFLICT (prescription_item_id) DO NOTHING
+            SQL, [':invoice_id' => $invoice['id'], ':prescription_id' => $prescriptionId])->execute();
+    }
+
+    public function syncVisitPaymentStatus(array $visit, array $invoice): array
+    {
+        if (!in_array($visit['status'], ['awaiting_billing', 'completed'], true)) {
+            return $visit;
+        }
+
+        $status = $invoice['status'] === 'paid' ? 'completed' : 'awaiting_billing';
+        if ($status !== $visit['status']) {
+            $this->db->createCommand()->update('visits', ['status' => $status], ['id' => $visit['id']])->execute();
+            $visit['status'] = $status;
+        }
+
+        return $visit;
+    }
+
     private function estimate(array $visit): array
     {
         $rows = $this->db->createCommand(<<<'SQL'
             SELECT item_type, description, quantity, unit_price,
                 quantity * unit_price AS subtotal, SUM(quantity * unit_price) OVER () AS total_amount
             FROM (
-                SELECT 0::bigint AS line_id, 'registration' AS item_type, 'Pendaftaran rawat jalan' AS description,
+                SELECT 0 AS position, 0::bigint AS line_id, 'registration' AS item_type, 'Pendaftaran rawat jalan' AS description,
                     1 AS quantity, CAST(:registration_fee AS numeric) AS unit_price
                 UNION ALL
-                SELECT item.id, 'procedure', master.name, item.quantity, item.unit_price
+                SELECT 1, item.id, 'procedure', master.name, item.quantity, item.unit_price
                 FROM visit_procedures AS item
                 JOIN medical_procedures AS master ON master.id = item.procedure_id
-                WHERE item.visit_id = :visit_id AND item.cancelled_at IS NULL
+                WHERE item.visit_id = :procedure_visit_id AND item.cancelled_at IS NULL
+                UNION ALL
+                SELECT 2, item.id, 'medicine', medicine.name, item.quantity, item.unit_price
+                FROM prescription_items AS item
+                JOIN prescriptions AS rx ON rx.id = item.prescription_id
+                JOIN medicines AS medicine ON medicine.id = item.medicine_id
+                WHERE item.visit_id = :prescription_visit_id AND rx.status = 'dispensed'
             ) AS components
-            ORDER BY line_id
+            ORDER BY position, line_id
             SQL, [
                 ':registration_fee' => $visit['registration_fee'],
-                ':visit_id' => $visit['id'],
+                ':procedure_visit_id' => $visit['id'],
+                ':prescription_visit_id' => $visit['id'],
             ])->queryAll();
 
         return [

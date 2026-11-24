@@ -132,6 +132,20 @@ Tangkapan layar memakai data fiktif dari pengujian. [Form pemeriksaan](docs/scre
 
 Masuk sebagai `demo.dokter.dalam`, buka pemeriksaan `DEMO-RM-004` pada **23 November 2026**, lalu pilih tab **Tindakan & tagihan**. Pilih tindakan dari master, cek tarif satuan, isi jumlah, dan klik **Tambah tindakan**. Untuk tindakan yang sudah tercatat, gunakan **Ubah jumlah** atau **Batalkan**. [Buka antrean demo](http://127.0.0.1:5173/#/registration/queue?date=2026-11-23)
 
-Panel **Komponen tagihan** menampilkan estimasi pendaftaran dan tindakan aktif. Pada kunjungan dengan tagihan terbit, panel juga menampilkan rincian tagihan, jumlah dibayar, dan saldo. Gunakan akun `demo.dokter.umum` pada `DEMO-RM-002` untuk melihat contoh tagihan yang dibayar sebagian. [Dokumentasi API](docs/api.md#tindakan-dan-komponen-tagihan)
+Panel **Komponen tagihan** menampilkan estimasi pendaftaran, tindakan aktif, dan obat yang sudah diserahkan. Pada kunjungan dengan tagihan terbit, panel juga menampilkan rincian tagihan, jumlah dibayar, dan saldo. Gunakan akun `demo.dokter.umum` pada `DEMO-RM-002` untuk melihat contoh tagihan yang dibayar sebagian. [Dokumentasi API](docs/api.md#tindakan-dan-komponen-tagihan)
 
 Tangkapan layar memakai data fiktif dari pengujian. [Tindakan dan estimasi biaya](docs/screenshots/tindakan-komponen-tagihan.png) · [Rincian tagihan](docs/screenshots/tagihan-tindakan.png)
+
+### Resep, penyerahan obat, dan stok
+
+Masuk sebagai `demo.dokter.dalam`, buka pemeriksaan `DEMO-RM-004` pada **23 November 2026**, lalu pilih tab **Resep**. Tambahkan obat dari master dan isi dosis, frekuensi, serta jumlah. Resep tersimpan dengan status **Menunggu penyerahan**. Dokter bisa membatalkan resep yang masih menunggu. [Buka antrean dokter](http://127.0.0.1:5173/#/registration/queue?date=2026-11-23)
+
+Masuk sebagai `demo.farmasi` lalu buka **Farmasi**. Data demo menyediakan resep menunggu untuk `DEMO-RM-004`. Pilih **Serahkan obat** dan periksa daftar sebelum mengonfirmasi. Setelah berhasil, resep tampil di filter **Diserahkan**, saldo stok berkurang, dan dokter bisa melihatnya di **Riwayat penggunaan obat**. [Buka Farmasi](http://127.0.0.1:5173/#/pharmacy) · [Dokumentasi API](docs/api.md#resep-dan-penyerahan-obat)
+
+Tangkapan layar memakai data fiktif dari pengujian. [Resep dokter](docs/screenshots/resep.png) · [Penyerahan farmasi](docs/screenshots/farmasi.png)
+
+Uji integrasi stok menambahkan pasien, obat, dan resep fiktif ke database pengujian yang sudah dimigrasi dan di-seed. Arahkan API ke stack pengujian.
+
+```sh
+SIMRS_TEST_API_URL=http://127.0.0.1:17808 node --test tests/pharmacy-stock.integration.mjs
+```

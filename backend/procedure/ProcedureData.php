@@ -151,13 +151,7 @@ final class ProcedureData
                 throw new ConflictHttpException('Total tagihan tidak boleh lebih kecil dari jumlah yang sudah dibayar.');
             }
 
-            if (in_array($previousStatus, ['awaiting_billing', 'completed'], true)) {
-                $status = $updatedInvoice['status'] === 'paid' ? 'completed' : 'awaiting_billing';
-                if ($status !== $previousStatus) {
-                    $this->db->createCommand()->update('visits', ['status' => $status], ['id' => $visit['id']])->execute();
-                    $visit['status'] = $status;
-                }
-            }
+            $visit = $this->charges->syncVisitPaymentStatus($visit, $updatedInvoice);
         }
 
         $this->db->createCommand()->insert('audit_logs', [
