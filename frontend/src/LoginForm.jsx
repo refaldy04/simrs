@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { authRequest } from './auth.js';
+import { coreRequest } from './api.js';
 
 export function LoginForm({ notice, onLogin }) {
   const [pending, setPending] = useState(false);
@@ -12,7 +12,7 @@ export function LoginForm({ notice, onLogin }) {
     const values = new FormData(event.currentTarget);
 
     try {
-      const session = await authRequest('login', {
+      const session = await coreRequest('auth/login', {
         method: 'POST',
         body: { username: values.get('username'), password: values.get('password') },
       });

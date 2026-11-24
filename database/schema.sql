@@ -174,7 +174,8 @@ ALTER TABLE public.doctor_schedules ALTER COLUMN id ADD GENERATED ALWAYS AS IDEN
 CREATE TABLE public.doctors (
     staff_id bigint NOT NULL,
     specialty character varying(100) NOT NULL,
-    practice_license_no character varying(64)
+    practice_license_no character varying(64),
+    is_active boolean DEFAULT true NOT NULL
 );
 
 

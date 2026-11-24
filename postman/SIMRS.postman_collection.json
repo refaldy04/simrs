@@ -24,6 +24,10 @@
     {
       "key": "accessToken",
       "value": ""
+    },
+    {
+      "key": "masterPatientId",
+      "value": ""
     }
   ],
   "item": [
@@ -258,6 +262,180 @@
                   "    pm.response.to.have.status(401);",
                   "});",
                   "pm.collectionVariables.unset(\"accessToken\");"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Master Data",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{accessToken}}",
+            "type": "string"
+          }
+        ]
+      },
+      "item": [
+        {
+          "name": "Login admin master data",
+          "request": {
+            "method": "POST",
+            "url": "{{backendUrl}}/auth/login",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"demo.admin\",\n  \"password\": \"{{demoPassword}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.collectionVariables.unset(\"accessToken\");",
+                  "if (pm.response.code === 200) {",
+                  "    pm.collectionVariables.set(\"accessToken\", pm.response.json().access_token);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Katalog master data",
+          "request": {
+            "method": "GET",
+            "url": "{{backendUrl}}/master-data"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Delapan jenis master\", function () {",
+                  "    pm.expect(pm.response.json().resources).to.have.lengthOf(8);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cari pasien demo",
+          "request": {
+            "method": "GET",
+            "url": "{{backendUrl}}/master-data/patients?q=Pasien%20Demo&status=active&page_size=2"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.collectionVariables.unset(\"masterPatientId\");",
+                  "if (pm.response.code === 200) {",
+                  "    const page = pm.response.json();",
+                  "    pm.test(\"Pencarian dan pagination\", function () {",
+                  "        pm.expect(page.total).to.be.at.least(1);",
+                "        pm.expect(page.items.length).to.be.within(1, 2);",
+                  "    });",
+                  "    if (page.items.length) pm.collectionVariables.set(\"masterPatientId\", page.items[0].id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Detail pasien",
+          "request": {
+            "method": "GET",
+            "url": "{{backendUrl}}/master-data/patients/{{masterPatientId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Detail sesuai ID\", function () {",
+                  "    pm.expect(pm.response.json().id).to.equal(pm.collectionVariables.get(\"masterPatientId\"));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Pilihan jadwal praktik",
+          "request": {
+            "method": "GET",
+            "url": "{{backendUrl}}/master-data/doctor-schedules/options"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Pilihan dokter dan poli\", function () {",
+                  "    const options = pm.response.json().options;",
+                  "    pm.expect(options.doctor_id).to.be.an(\"array\");",
+                  "    pm.expect(options.clinic_id).to.be.an(\"array\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Logout master data",
+          "request": {
+            "method": "POST",
+            "url": "{{backendUrl}}/auth/logout"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 204\", function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});",
+                  "pm.collectionVariables.unset(\"accessToken\");",
+                  "pm.collectionVariables.unset(\"masterPatientId\");"
                 ]
               }
             }

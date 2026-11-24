@@ -105,3 +105,9 @@ Setelah menjalankan migrasi dan seed, buka frontend dan masuk menggunakan salah 
 | Kasir | `demo.kasir` |
 
 Folder Autentikasi dan Akses pada koleksi Postman menguji login, profil, izin kedua API, dan logout dengan akun dokter demo. [Koleksi Postman](postman/SIMRS.postman_collection.json)
+
+### Master data
+
+Masuk sebagai `demo.admin` lalu buka menu **Master data** untuk mengelola pasien, tenaga medis, dokter, poli, jadwal praktik, tindakan medis, obat, dan pemeriksaan lab. Akun `demo.pendaftaran` mendapat menu pasien.
+
+Gunakan pencarian dan filter status untuk menemukan data. Untuk mengaktifkan kembali data, pilih status **Nonaktif**, buka **Ubah**, lalu centang **Aktif**. [Dokumentasi API master data](docs/api.md#master-data)

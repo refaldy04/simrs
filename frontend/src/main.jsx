@@ -1,7 +1,9 @@
-import { StrictMode, useEffect, useState } from 'react';
+import { StrictMode, useCallback, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { authRequest, readStoredToken, storeToken } from './auth.js';
+import { coreRequest } from './api.js';
+import { readStoredToken, storeToken } from './auth.js';
 import { LoginForm } from './LoginForm.jsx';
+import { MasterDataPage } from './master/MasterDataPage.jsx';
 import './style.css';
 
 const permissionLabels = {
@@ -66,29 +68,43 @@ function App() {
   const [notice, setNotice] = useState('');
   const [restoreAttempt, setRestoreAttempt] = useState(0);
   const [signingOut, setSigningOut] = useState(false);
+  const [locationHash, setLocationHash] = useState(() => window.location.hash);
+
+  const expireSession = useCallback(() => {
+    storeToken(null);
+    setSession(null);
+    setNotice('Sesi berakhir. Masuk kembali untuk melanjutkan.');
+  }, []);
+
+  useEffect(() => {
+    function syncLocation() {
+      setLocationHash(window.location.hash);
+    }
+
+    window.addEventListener('hashchange', syncLocation);
+    return () => window.removeEventListener('hashchange', syncLocation);
+  }, []);
 
   useEffect(() => {
     if (!session || session.profile) return;
 
     const controller = new AbortController();
     const { signal } = controller;
-    authRequest('me', { token: session.token, signal }).then(
+    coreRequest('auth/me', { token: session.token, signal }).then(
       (profile) => {
         if (!signal.aborted) setSession({ token: session.token, profile });
       },
       (error) => {
         if (signal.aborted) return;
         if (error.status === 401) {
-          storeToken(null);
-          setSession(null);
-          setNotice('Sesi berakhir. Masuk kembali untuk melanjutkan.');
+          expireSession();
         } else {
           setNotice(error.message);
         }
       },
     );
     return () => controller.abort();
-  }, [session, restoreAttempt]);
+  }, [session, restoreAttempt, expireSession]);
 
   function login({ access_token: token, user, permissions }) {
     storeToken(token);
@@ -100,7 +116,7 @@ function App() {
     setSigningOut(true);
     setNotice('');
     try {
-      await authRequest('logout', { method: 'POST', token: session.token });
+      await coreRequest('auth/logout', { method: 'POST', token: session.token });
     } catch (error) {
       if (error.status !== 401) {
         setNotice(error.message);
@@ -143,8 +159,10 @@ function App() {
   }
 
   const { user, permissions } = session.profile;
+  const canOpenMaster = permissions.includes('master.manage') || permissions.includes('patients.manage');
+  const masterRoute = canOpenMaster ? /^#\/master-data(?:\/([a-z-]+))?$/.exec(locationHash) : null;
   return (
-    <main className="shell">
+    <main className={masterRoute ? 'shell master-shell' : 'shell'}>
       <header className="workspace-header">
         <div>
           <h1>SIMRS Rawat Jalan</h1>
@@ -155,7 +173,15 @@ function App() {
         </button>
       </header>
       {notice && <p className="feedback" role="alert">{notice}</p>}
-      <div className="workspace">
+      {canOpenMaster && (
+        <nav className="workspace-nav" aria-label="Navigasi utama">
+          <a href="#/" aria-current={masterRoute ? undefined : 'page'}>Ringkasan</a>
+          <a href="#/master-data" aria-current={masterRoute ? 'page' : undefined}>Master data</a>
+        </nav>
+      )}
+      {masterRoute ? (
+        <MasterDataPage token={session.token} requestedKey={masterRoute[1]} onUnauthorized={expireSession} />
+      ) : <div className="workspace">
         <section className="panel" aria-labelledby="permissions-title">
           <h2 id="permissions-title">Hak akses</h2>
           {permissions.length > 0 ? (
@@ -171,7 +197,7 @@ function App() {
             <ServiceStatus name="Node.js" endpoint="/api/services/health" />
           </dl>
         </section>
-      </div>
+      </div>}
     </main>
   );
 }

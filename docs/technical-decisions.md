@@ -23,6 +23,14 @@ Yii2 menerbitkan token Bearer acak dengan masa berlaku delapan jam. PostgreSQL m
 
 Action Yii2 memakai `Yii::$app->user->can($permission)` untuk memeriksa izin. Rute Express memakai `requirePermission(permission)` dan menerima keputusan dari Yii2. [Otorisasi Yii2](https://www.yiiframework.com/doc/guide/2.0/en/security-authorization)
 
+## Master data
+
+`MasterCatalog` mendefinisikan field, kolom daftar, pencarian, dan pilihan relasi untuk delapan jenis master. Controller Yii2 dan tampilan React memakai katalog tersebut. PostgreSQL menegakkan keunikan nomor rekam medis, identitas, nomor pegawai, izin praktik, kode, dan slot awal jadwal.
+
+Penonaktifan memakai `is_active` agar referensi kunjungan dan riwayat tarif tetap utuh. Pilihan jadwal menampilkan poli aktif serta dokter dan profil tenaga medis yang aktif. Jadwal yang sudah dirujuk kunjungan mempertahankan dokter, poli, tanggal, dan jamnya.
+
+Penulisan jadwal mengunci baris dokter untuk memeriksa benturan sesi aktif. Penyesuaian stok mengunci baris obat, membandingkan stok sebelumnya, lalu menyimpan stok dan mutasi dalam satu transaksi. [Penguncian baris PostgreSQL](https://www.postgresql.org/docs/17/explicit-locking.html#LOCKING-ROWS)
+
 ## Rancangan transaksi aplikasi
 
 | Skenario | Aturan basis data dan alur transaksi |

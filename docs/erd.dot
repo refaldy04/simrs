@@ -54,6 +54,7 @@ digraph simrs {
         <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>PK/FK</B></FONT></TD><TD ALIGN="LEFT">staff_id</TD></TR>
         <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">specialty</TD></TR>
         <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>UQ</B></FONT></TD><TD ALIGN="LEFT">practice_license_no</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT COLOR="#4D6480" POINT-SIZE="8"><B>&#160;</B></FONT></TD><TD ALIGN="LEFT">is_active</TD></TR>
       </TABLE>>];
   }
 
