@@ -1,0 +1,69 @@
+#billing-print {
+  display: none;
+}
+
+@media print {
+  @page {
+    margin: 16mm;
+  }
+
+  body:has(#billing-print) > #root {
+    display: none;
+  }
+
+  #billing-print {
+    display: block;
+    color: #151515;
+    font: 11pt/1.5 system-ui, sans-serif;
+  }
+
+  #billing-print h1 {
+    margin-bottom: 0.25rem;
+    font-size: 18pt;
+    font-weight: 700;
+  }
+
+  #billing-print h2 {
+    margin-bottom: 1.25rem;
+    font-size: 14pt;
+    font-weight: 600;
+  }
+
+  #billing-print dl {
+    margin: 1rem 0;
+  }
+
+  #billing-print dl > div {
+    display: grid;
+    grid-template-columns: 10rem 1fr;
+    gap: 1rem;
+    padding: 0.2rem 0;
+    break-inside: avoid;
+  }
+
+  #billing-print dt {
+    color: #333;
+  }
+
+  #billing-print dd {
+    overflow-wrap: anywhere;
+    font-weight: 500;
+  }
+
+  #billing-print table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  #billing-print td,
+  #billing-print th {
+    border-bottom: 1px solid #bbb;
+    padding: 0.45rem;
+    text-align: right;
+  }
+
+  #billing-print td:first-child,
+  #billing-print th:first-child {
+    text-align: left;
+  }
+}

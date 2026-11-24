@@ -49,7 +49,7 @@ Revisi pemeriksaan yang sudah selesai atau memiliki tagihan memerlukan alasan. D
 
 Tindakan kunjungan merujuk `medical_procedures` dan menyimpan salinan tarif satuan. Jumlah mewakili pengulangan tindakan yang sama. Penambahan memeriksa tindakan aktif yang sama di bawah kunci kunjungan. Koreksi memeriksa jumlah terakhir yang dibaca. Pembatalan mengisi `cancelled_at`, sehingga catatan tindakan tetap bisa ditelusuri.
 
-Sebelum tagihan terbit, estimasi dihitung dari biaya pendaftaran, tindakan aktif, dan obat yang sudah diserahkan. Setelah tagihan terbit, transaksi perubahan mengunci kunjungan lebih dulu lalu baris invoice, memperbarui komponen tindakan, dan menghitung saldo dari `invoice_balances`. Total di bawah pembayaran yang sudah diterima membatalkan seluruh perubahan. Jika revisi menghasilkan saldo baru, kunjungan yang sudah selesai kembali berstatus menunggu pembayaran. Kunjungan dengan tagihan yang sudah tercakup penuh berstatus selesai.
+Sebelum tagihan terbit, estimasi dihitung dari biaya pendaftaran, tindakan aktif, lab yang selesai, dan obat yang sudah diserahkan. Setelah tagihan terbit, transaksi perubahan mengunci kunjungan lebih dulu lalu baris invoice, memperbarui komponen tindakan, dan menghitung saldo dari `invoice_balances`. Total di bawah pembayaran yang sudah diterima membatalkan seluruh perubahan. Jika revisi menghasilkan saldo baru, kunjungan yang sudah selesai kembali berstatus menunggu pembayaran. Kunjungan dengan tagihan yang sudah tercakup penuh berstatus selesai.
 
 Audit menyimpan pengguna, alasan, dan snapshot tindakan serta ringkasan tagihan sebelum dan sesudah perubahan. Operasi penerbitan tagihan dan pembayaran yang juga menulis status kunjungan mengikuti urutan kunci kunjungan lalu invoice. [Penguncian baris PostgreSQL](https://www.postgresql.org/docs/17/explicit-locking.html#LOCKING-ROWS)
 
@@ -60,6 +60,14 @@ Pembuatan resep mengunci kunjungan, memeriksa jumlah yang diminta terhadap stok 
 Penyerahan mengunci kunjungan dan resep, lalu invoice bila ada. Baris obat diperbarui menurut urutan ID untuk menjaga urutan kunci konsisten. Setiap `UPDATE` mensyaratkan obat aktif dengan `stock_quantity >= quantity`. Bila satu item gagal, transaksi membatalkan seluruh pengurangan stok. Status resep, `medicine_stock_movements`, audit, dan komponen obat pada tagihan disimpan dalam transaksi yang sama. Pengulangan terhadap resep berstatus `dispensed` mengembalikan penyerahan tersebut. Constraint unik pada `prescription_item_id` menjaga satu mutasi penyerahan per item. [Penguncian baris PostgreSQL](https://www.postgresql.org/docs/17/explicit-locking.html#LOCKING-ROWS)
 
 Riwayat penggunaan obat mengambil resep yang sudah diserahkan berdasarkan pasien dari kunjungan dokter. `tests/pharmacy-stock.integration.mjs` menjalankan dua penyerahan pada stok yang cukup untuk satu resep dan memeriksa rollback resep dengan beberapa obat. [Uji integrasi stok](../tests/pharmacy-stock.integration.mjs)
+
+## Billing dan pembayaran
+
+Estimasi dan penerbitan memakai proyeksi komponen biaya yang sama. Penerbitan mengunci kunjungan, menyimpan satu invoice dan rincian dalam satu transaksi, lalu memakai `invoice_balances` sebagai sumber saldo. Constraint unik pada `visit_id` menjaga satu nomor invoice per kunjungan.
+
+Pembayaran mengunci kunjungan lalu invoice sebelum membaca saldo terbaru. PostgreSQL membandingkan dan menjumlahkan nominal sebagai `NUMERIC`. Penyimpanan pembayaran, perubahan status kunjungan, dan audit berada dalam satu transaksi. Ketika pembayaran mencakup total, invoice berstatus lunas dan kunjungan selesai. [Penguncian baris PostgreSQL](https://www.postgresql.org/docs/17/explicit-locking.html#LOCKING-ROWS)
+
+Kunci UUID disimpan di `payments` dengan constraint unik global. Pengiriman ulang membandingkan invoice, nominal, metode, dan referensi sebelum mengembalikan transaksi asli. React menyimpan permintaan yang belum terkonfirmasi di `sessionStorage`, sehingga pengguna dapat memuat ulang halaman dan mengirim ulang kunci yang sama. [Uji integrasi billing](../tests/billing.integration.mjs)
 
 ## Rancangan transaksi aplikasi
 

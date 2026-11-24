@@ -1,6 +1,8 @@
 import { Alert, Button, Chip, Paper, Typography } from '@mui/material';
 import { useCallback, useEffect, useState } from 'react';
 import { readStoredToken, storeToken } from './auth.js';
+import { BillingDetail } from './billing/BillingDetail.jsx';
+import { BillingQueue } from './billing/BillingQueue.jsx';
 import { LoadStatus } from './components/LoadStatus.jsx';
 import { ExaminationPage } from './examination/ExaminationPage.jsx';
 import { LoginForm } from './LoginForm.jsx';
@@ -108,6 +110,7 @@ export function App() {
   const canManageProcedures = permissions.includes('procedures.manage');
   const canPrescribe = permissions.includes('prescriptions.create');
   const canDispense = permissions.includes('prescriptions.dispense');
+  const canBill = permissions.includes('billing.manage');
   const masterRoute = canOpenMaster ? /^#\/master-data(?:\/([a-z-]+))?$/.exec(locationHash) : null;
   const registrationRoute = canReadQueue
     ? /^#\/registration(?:\/(schedules|queue))?(?:\?date=(\d{4}-\d{2}-\d{2}))?$/.exec(locationHash)
@@ -115,7 +118,8 @@ export function App() {
   const examinationRoute = canExamine ? /^#\/examinations\/([1-9]\d{0,18})$/.exec(locationHash) : null;
   const onQueue = Boolean(registrationRoute || examinationRoute);
   const onPharmacy = canDispense && locationHash === '#/pharmacy';
-  const onOverview = !masterRoute && !onQueue && !onPharmacy;
+  const billingRoute = canBill ? /^#\/billing(?:\/([1-9]\d{0,18}))?$/.exec(locationHash) : null;
+  const onOverview = !masterRoute && !onQueue && !onPharmacy && !billingRoute;
 
   let content = <WorkspaceOverview permissions={permissions} />;
   if (masterRoute) {
@@ -145,6 +149,11 @@ export function App() {
     );
   } else if (onPharmacy) {
     content = <PharmacyPage token={session.token} onUnauthorized={expireSession} />;
+  } else if (billingRoute) {
+    const visitId = billingRoute[1];
+    content = visitId
+      ? <BillingDetail key={visitId} visitId={visitId} token={session.token} onUnauthorized={expireSession} />
+      : <BillingQueue token={session.token} onUnauthorized={expireSession} />;
   }
 
   return (
@@ -165,7 +174,7 @@ export function App() {
       </header>
       <main className="mx-auto grid max-w-7xl gap-4 px-4 py-5 sm:px-6 sm:py-7">
         {notice && <Alert severity="error">{notice}</Alert>}
-        {(canOpenMaster || canReadQueue || canDispense) && (
+        {(canOpenMaster || canReadQueue || canDispense || canBill) && (
           <nav aria-label="Navigasi utama" className="flex flex-wrap gap-2">
             <Button href="#/" variant={onOverview ? 'contained' : 'text'} aria-current={onOverview ? 'page' : undefined}>
               Ringkasan
@@ -187,6 +196,11 @@ export function App() {
             {canDispense && (
               <Button href="#/pharmacy" variant={onPharmacy ? 'contained' : 'text'} aria-current={onPharmacy ? 'page' : undefined}>
                 Farmasi
+              </Button>
+            )}
+            {canBill && (
+              <Button href="#/billing" variant={billingRoute ? 'contained' : 'text'} aria-current={billingRoute ? 'page' : undefined}>
+                Tagihan
               </Button>
             )}
           </nav>

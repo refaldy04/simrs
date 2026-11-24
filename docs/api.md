@@ -134,7 +134,7 @@ Kirim token Bearer dengan izin `procedures.manage`. `{id}` adalah ID kunjungan y
 | `PATCH /procedures/visits/{id}/items/{itemId}` | `200` dengan jumlah dan tagihan terbaru. |
 | `POST /procedures/visits/{id}/items/{itemId}/cancel` | `200` dengan tindakan berstatus dibatalkan dan komponen biaya terbaru. |
 
-Respons memuat `visit_status`, `can_write`, `requires_revision_reason`, `items`, `options`, dan `billing`. `billing.items` memuat jenis, deskripsi, jumlah, tarif satuan, dan subtotal. Harga dan total dikirim sebagai string desimal. Sebelum tagihan terbit, `billing.invoice` bernilai `null` dan panel menampilkan estimasi pendaftaran, tindakan aktif, serta obat yang sudah diserahkan. Setelah terbit, API membaca `invoice_items` dan `invoice_balances` untuk menampilkan rincian dan saldo tagihan.
+Respons memuat `visit_status`, `can_write`, `requires_revision_reason`, `items`, `options`, dan `billing`. `billing.items` memuat jenis, deskripsi, jumlah, tarif satuan, dan subtotal. Harga dan total dikirim sebagai string desimal. Sebelum tagihan terbit, `billing.invoice` bernilai `null` dan panel menampilkan estimasi pendaftaran, tindakan aktif, lab yang selesai, serta obat yang sudah diserahkan. Setelah terbit, API membaca `invoice_items` dan `invoice_balances` untuk menampilkan rincian dan saldo tagihan.
 
 Penambahan menerima `procedure_id` dari pilihan master dan `quantity` dengan nilai bawaan `1`. `expected_unit_price` opsional dan memakai string tarif dari `options`. API menyalin tarif master pada saat menyimpan tindakan. Tindakan yang sudah aktif dihitung melalui jumlah pada baris tersebut.
 
@@ -183,3 +183,34 @@ Jumlah obat yang sama diperiksa secara agregat saat resep dibuat. Stok berkurang
 Peran yang tidak berwenang menghasilkan `403`. Kunjungan di luar penugasan atau resep di luar kunjungan menghasilkan `404`. Isian resep yang salah menghasilkan `422` dengan `errors` per field. Konflik stok, harga, status resep, atau penggunaan ulang kunci dengan isian berbeda menghasilkan `409`.
 
 Folder **Resep dan Farmasi** menguji akses dokter, riwayat obat, antrean, dan pengiriman ulang penyerahan. [Koleksi SIMRS](../postman/SIMRS.postman_collection.json)
+
+## Billing dan pembayaran
+
+Gunakan token Bearer dengan izin `billing.manage`. Antrean menampilkan kunjungan siap tagih dan kunjungan dengan invoice yang sudah terbit.
+
+| Metode dan path | Respons |
+| --- | --- |
+| `GET /billing/visits` | `200` dengan daftar kunjungan, status tagihan, total, dan saldo invoice bila tersedia. |
+| `GET /billing/visits/{visitId}` | `200` dengan `visit`, `can_issue`, dan `billing`, termasuk rincian biaya serta saldo. |
+| `POST /billing/visits/{visitId}/invoice` | `201` dengan `detail` dan `replayed: false`. Jika invoice sudah terbit, mengembalikan `200` dan invoice tersebut. |
+| `POST /billing/invoices/{invoiceId}/payments` | `201` dengan `payment`, `detail`, dan `replayed: false`. Jika permintaan yang sama sudah tersimpan, mengembalikan `200` dan `replayed: true`. |
+| `GET /billing/visits/{visitId}/history` | `200` dengan riwayat pembayaran pasien, termasuk nomor bukti, nominal, invoice, metode, kasir, dan waktu bayar. |
+
+Antrean menerima `q`, `status`, `page`, dan `page_size`. Cari nama, nomor rekam medis, atau nomor invoice. `status` menerima `all`, `unissued`, `unpaid`, `partial`, atau `paid`. Riwayat menerima `page` dan `page_size` serta diurutkan dari pembayaran terbaru.
+
+Penerbitan invoice memakai `POST` tanpa body. Invoice baru tersedia saat kunjungan berstatus `awaiting_billing`. Rincian berasal dari pendaftaran, tindakan aktif, lab yang sudah selesai, dan obat yang sudah diserahkan. Jumlah serta subtotal diambil dari data transaksi yang sudah tersimpan.
+
+Pembayaran menerima nominal positif sebagai string desimal dengan maksimal dua angka di belakang titik. Gunakan `cash` untuk tunai atau `non_cash` untuk simulasi non-tunai. Field `external_reference` bersifat opsional.
+
+```json
+{
+  "idempotency_key": "df5ec5ff-476f-49f6-9898-66d33224739c",
+  "amount": "25000.50",
+  "method": "non_cash",
+  "external_reference": "TRANSFER-SIMULASI-001"
+}
+```
+
+Untuk pengiriman ulang, pakai UUID dan isian yang sama. Respons mengembalikan bukti bayar asli dan saldo terbaru, termasuk jika invoice kini lunas. UUID yang sama dengan invoice atau isian berbeda menghasilkan `409`. Nominal di atas saldo terbaru juga menghasilkan `409`. Isian yang salah menghasilkan `422` dengan `errors` per field, dan peran yang tidak berwenang menghasilkan `403`.
+
+Folder **Billing dan Pembayaran** menguji rincian, riwayat, dan pengiriman ulang pembayaran demo. [Koleksi SIMRS](../postman/SIMRS.postman_collection.json)

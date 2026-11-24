@@ -26,6 +26,15 @@ final class RequestInput
         return $id;
     }
 
+    public static function uuid(mixed $value): ?string
+    {
+        if (!is_string($value) || !preg_match('/\A[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\z/i', $value)) {
+            return null;
+        }
+
+        return strtolower($value);
+    }
+
     public static function date(mixed $value): ?string
     {
         if (!is_string($value) || !preg_match('/\A([0-9]{4})-([0-9]{2})-([0-9]{2})\z/', $value, $parts)) {

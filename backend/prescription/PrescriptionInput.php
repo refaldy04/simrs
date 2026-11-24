@@ -15,8 +15,8 @@ final class PrescriptionInput
             $errors['body'] = 'Ada field yang tidak dikenal.';
         }
 
-        $key = $body['idempotency_key'] ?? null;
-        if (!is_string($key) || !preg_match('/\A[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\z/i', $key)) {
+        $key = RequestInput::uuid($body['idempotency_key'] ?? null);
+        if ($key === null) {
             $errors['idempotency_key'] = 'Kirim idempotency_key dalam format UUID.';
         }
 
@@ -37,7 +37,7 @@ final class PrescriptionInput
             throw new InvalidPrescriptionInput($errors);
         }
 
-        return ['idempotency_key' => strtolower($key), 'items' => $items];
+        return ['idempotency_key' => $key, 'items' => $items];
     }
 
     private static function item(mixed $row, string $path, array &$errors): ?array

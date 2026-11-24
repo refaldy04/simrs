@@ -2,7 +2,7 @@ import { Alert, Paper, Typography } from '@mui/material';
 import { useEffect, useState } from 'react';
 import { LoadStatus } from '../components/LoadStatus.jsx';
 import { addVisitProcedure, cancelVisitProcedure, getVisitProcedures, updateVisitProcedure } from '../service/procedureService.js';
-import { BillingComponents } from './BillingComponents.jsx';
+import { BillingComponents } from '../billing/BillingComponents.jsx';
 import { ProcedureDialog, ProcedureForm } from './ProcedureForm.jsx';
 import { ProcedureTable } from './ProcedureTable.jsx';
 

@@ -10,15 +10,21 @@ const itemTypes = {
   medicine: 'Obat',
 };
 
-const paymentStatuses = {
+export const billingStatuses = {
+  unissued: { label: 'Belum terbit', color: 'default' },
   unpaid: { label: 'Belum dibayar', color: 'default' },
   partial: { label: 'Dibayar sebagian', color: 'warning' },
   paid: { label: 'Lunas', color: 'success' },
 };
 
+export function BillingStatus({ status }) {
+  const option = billingStatuses[status];
+
+  return <Chip size="small" variant="outlined" color={option.color} label={option.label} />;
+}
+
 export function BillingComponents({ billing }) {
   const invoice = billing.invoice;
-  const paymentStatus = invoice && paymentStatuses[invoice.status];
 
   return (
     <Paper component="section" variant="outlined" aria-labelledby="billing-components-title" className="grid min-w-0 gap-4 p-4 sm:p-6">
@@ -29,7 +35,7 @@ export function BillingComponents({ billing }) {
             {invoice ? 'Tagihan ' + invoice.invoice_no : 'Estimasi biaya kunjungan'}
           </Typography>
         </div>
-        {paymentStatus && <Chip size="small" variant="outlined" color={paymentStatus.color} label={paymentStatus.label} />}
+        {invoice && <BillingStatus status={invoice.status} />}
       </div>
       <TableContainer tabIndex={0} className="rounded-lg border border-slate-200">
         <Table size="small" aria-label="Rincian komponen tagihan" className="min-w-[34rem]">

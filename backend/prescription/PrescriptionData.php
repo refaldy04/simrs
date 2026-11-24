@@ -128,10 +128,7 @@ final class PrescriptionData
             }
 
             $visitId = (string) $visitId;
-            $visit = $this->db->createCommand(
-                'SELECT id, status FROM visits WHERE id = :id FOR UPDATE',
-                [':id' => $visitId],
-            )->queryOne();
+            $visit = $this->charges->lockVisit($visitId);
             $status = $this->lockPrescription($id, $visitId);
             if ($status === 'dispensed') {
                 return ['prescription' => $this->records->record($id)];

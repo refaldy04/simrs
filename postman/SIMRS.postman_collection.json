@@ -72,6 +72,18 @@
     {
       "key": "dispensedTimestamp",
       "value": ""
+    },
+    {
+      "key": "billingVisitId",
+      "value": ""
+    },
+    {
+      "key": "billingInvoiceId",
+      "value": ""
+    },
+    {
+      "key": "billingPaidAmount",
+      "value": ""
     }
   ],
   "item": [
@@ -1747,6 +1759,358 @@
                   "pm.collectionVariables.unset(\"prescriptionVisitId\");",
                   "pm.collectionVariables.unset(\"dispensedPrescriptionId\");",
                   "pm.collectionVariables.unset(\"dispensedTimestamp\");"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Billing dan Pembayaran",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{accessToken}}",
+            "type": "string"
+          }
+        ]
+      },
+      "item": [
+        {
+          "name": "Login kasir",
+          "request": {
+            "method": "POST",
+            "url": "{{backendUrl}}/auth/login",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"demo.kasir\",\n  \"password\": \"{{demoPassword}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.collectionVariables.unset(\"accessToken\");",
+                  "if (pm.response.code === 200) pm.collectionVariables.set(\"accessToken\", pm.response.json().access_token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cari invoice pasien demo",
+          "request": {
+            "method": "GET",
+            "url": "{{backendUrl}}/billing/visits?q=DEMO-INV-002"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const candidate = pm.response.json().items.find(function (entry) { return entry.invoice_no === \"DEMO-INV-002\"; });",
+                  "pm.test(\"Invoice DEMO-INV-002 tampil pada daftar tagihan\", function () {",
+                  "    pm.expect(candidate.medical_record_no).to.equal(\"DEMO-RM-002\");",
+                  "});",
+                  "if (candidate) pm.collectionVariables.set(\"billingVisitId\", candidate.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Baca rincian invoice dan saldo",
+          "request": {
+            "method": "GET",
+            "url": "{{backendUrl}}/billing/visits/{{billingVisitId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const billing = pm.response.json().billing;",
+                  "pm.test(\"Rincian pendaftaran dan saldo invoice tersedia\", function () {",
+                  "    pm.expect(billing.items.some(function (entry) { return entry.item_type === \"registration\"; })).to.equal(true);",
+                  "    pm.expect(billing.invoice.balance_amount).to.match(/^\\d+\\.\\d{2}$/);",
+                  "});",
+                  "if (billing.invoice) {",
+                  "    pm.collectionVariables.set(\"billingInvoiceId\", billing.invoice.id);",
+                  "    pm.collectionVariables.set(\"billingPaidAmount\", billing.invoice.paid_amount);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Baca riwayat pembayaran pasien",
+          "request": {
+            "method": "GET",
+            "url": "{{backendUrl}}/billing/visits/{{billingVisitId}}/history"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Riwayat memuat bukti bayar demo\", function () {",
+                  "    const receipt = pm.response.json().items.find(function (entry) { return entry.receipt_no === \"DEMO-RCPT-003\"; });",
+                  "    pm.expect(receipt.amount).to.equal(\"50000.00\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ulangi penerbitan invoice yang sudah ada",
+          "request": {
+            "method": "POST",
+            "url": "{{backendUrl}}/billing/visits/{{billingVisitId}}/invoice"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Penerbitan ulang mengembalikan invoice yang sama\", function () {",
+                  "    const issued = pm.response.json();",
+                  "    pm.expect(issued.replayed).to.equal(true);",
+                  "    pm.expect(issued.detail.billing.invoice.id).to.equal(pm.collectionVariables.get(\"billingInvoiceId\"));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ulangi pembayaran demo dengan kunci yang sama",
+          "request": {
+            "method": "POST",
+            "url": "{{backendUrl}}/billing/invoices/{{billingInvoiceId}}/payments",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idempotency_key\": \"00000000-0000-4000-8000-000000000003\",\n  \"amount\": \"50000.00\",\n  \"method\": \"cash\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Bukti bayar sama dan total dibayar tetap\", function () {",
+                  "    const copy = pm.response.json();",
+                  "    pm.expect(copy.replayed).to.equal(true);",
+                  "    pm.expect(copy.payment.receipt_no).to.equal(\"DEMO-RCPT-003\");",
+                  "    pm.expect(copy.detail.billing.invoice.paid_amount).to.equal(pm.collectionVariables.get(\"billingPaidAmount\"));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Tolak perubahan nominal pada kunci yang sudah dipakai",
+          "request": {
+            "method": "POST",
+            "url": "{{backendUrl}}/billing/invoices/{{billingInvoiceId}}/payments",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idempotency_key\": \"00000000-0000-4000-8000-000000000003\",\n  \"amount\": \"50000.01\",\n  \"method\": \"cash\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 409\", function () {",
+                  "    pm.response.to.have.status(409);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Tolak nominal nol",
+          "request": {
+            "method": "POST",
+            "url": "{{backendUrl}}/billing/invoices/{{billingInvoiceId}}/payments",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idempotency_key\": \"00000000-0000-4000-8000-000000000004\",\n  \"amount\": \"0.00\",\n  \"method\": \"cash\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 422\", function () {",
+                  "    pm.response.to.have.status(422);",
+                  "});",
+                  "pm.test(\"Kesalahan validasi menunjuk nominal pembayaran\", function () {",
+                  "    pm.expect(pm.response.json().errors.amount).to.be.a(\"string\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Logout kasir",
+          "request": {
+            "method": "POST",
+            "url": "{{backendUrl}}/auth/logout"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 204\", function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});",
+                  "pm.collectionVariables.unset(\"accessToken\");",
+                  "pm.collectionVariables.unset(\"billingVisitId\");",
+                  "pm.collectionVariables.unset(\"billingInvoiceId\");",
+                  "pm.collectionVariables.unset(\"billingPaidAmount\");"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login petugas pendaftaran untuk uji akses billing",
+          "request": {
+            "method": "POST",
+            "url": "{{backendUrl}}/auth/login",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"demo.pendaftaran\",\n  \"password\": \"{{demoPassword}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.collectionVariables.unset(\"accessToken\");",
+                  "if (pm.response.code === 200) pm.collectionVariables.set(\"accessToken\", pm.response.json().access_token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Tolak akses billing bagi petugas pendaftaran",
+          "request": {
+            "method": "GET",
+            "url": "{{backendUrl}}/billing/visits"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 403\", function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Logout petugas pendaftaran",
+          "request": {
+            "method": "POST",
+            "url": "{{backendUrl}}/auth/logout"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 204\", function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});",
+                  "pm.collectionVariables.unset(\"accessToken\");"
                 ]
               }
             }

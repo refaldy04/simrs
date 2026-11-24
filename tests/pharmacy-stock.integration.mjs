@@ -1,35 +1,7 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import test from 'node:test';
-
-const base = process.env.SIMRS_TEST_API_URL;
-const demoDate = '2026-11-23';
-const demoPassword = process.env.SIMRS_TEST_PASSWORD ?? 'SimrsDemo2026!';
-
-async function request(path, { token, method = 'GET', body } = {}) {
-  const headers = { Accept: 'application/json' };
-  if (token) headers.Authorization = 'Bearer ' + token;
-  if (body !== undefined) headers['Content-Type'] = 'application/json';
-  const response = await fetch(base.replace(/\/$/, '') + path, {
-    method, headers, body: body === undefined ? undefined : JSON.stringify(body),
-    signal: AbortSignal.timeout(12000),
-  });
-
-  return { status: response.status, data: await response.json().catch(() => null) };
-}
-
-async function expect(status, path, options) {
-  const result = await request(path, options);
-  assert.equal(result.status, status, (options?.method ?? 'GET') + ' ' + path + ' ' + (result.data?.message ?? ''));
-
-  return result.data;
-}
-
-async function login(username) {
-  const result = await expect(200, '/auth/login', { method: 'POST', body: { username, password: demoPassword } });
-
-  return result.access_token;
-}
+import { demoDate, expect, login, request } from './support/simrsApi.mjs';
 
 function prescriptionItem(medicine, quantity) {
   return {
@@ -42,7 +14,6 @@ function prescriptionItem(medicine, quantity) {
 }
 
 test('Resep dan penyerahan menjaga stok serta komponen tagihan', async (t) => {
-  assert.ok(base, 'Arahkan SIMRS_TEST_API_URL ke stack pengujian yang sudah di-seed.');
   const [admin, registrar, doctor, pharmacy] = await Promise.all([
     login('demo.admin'), login('demo.pendaftaran'), login('demo.dokter.umum'), login('demo.farmasi'),
   ]);

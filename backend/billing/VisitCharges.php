@@ -4,12 +4,30 @@ declare(strict_types=1);
 
 namespace app\billing;
 
+use DateTimeImmutable;
 use yii\db\Connection;
+use yii\web\NotFoundHttpException;
 
 final class VisitCharges
 {
     public function __construct(private readonly Connection $db)
     {
+    }
+
+    public function lockVisit(string $id): array
+    {
+        $visit = $this->db->createCommand(
+            'SELECT id, status, visit_date, registration_fee FROM visits WHERE id = :id FOR UPDATE',
+            [':id' => $id],
+        )->queryOne();
+        if ($visit === false) {
+            throw new NotFoundHttpException('Kunjungan tidak ditemukan.');
+        }
+
+        $visit['id'] = (string) $visit['id'];
+        $visit['registration_fee'] = (string) $visit['registration_fee'];
+
+        return $visit;
     }
 
     public function invoiceForVisit(string $visitId, bool $lock = false): ?array
@@ -26,7 +44,8 @@ final class VisitCharges
     public function invoiceSummary(string $id): array
     {
         $invoice = $this->db->createCommand(<<<'SQL'
-            SELECT invoice.id, invoice.invoice_no, balance.total_amount, balance.paid_amount, balance.balance_amount, balance.status
+            SELECT invoice.id, invoice.invoice_no, invoice.issued_at,
+                balance.total_amount, balance.paid_amount, balance.balance_amount, balance.status
             FROM invoices AS invoice
             JOIN invoice_balances AS balance ON balance.invoice_id = invoice.id
             WHERE invoice.id = :id
@@ -35,6 +54,7 @@ final class VisitCharges
         return [
             'id' => (string) $invoice['id'],
             'invoice_no' => $invoice['invoice_no'],
+            'issued_at' => (new DateTimeImmutable($invoice['issued_at']))->format(DATE_ATOM),
             'total_amount' => (string) $invoice['total_amount'],
             'paid_amount' => (string) $invoice['paid_amount'],
             'balance_amount' => (string) $invoice['balance_amount'],
@@ -118,21 +138,55 @@ final class VisitCharges
         return $visit;
     }
 
+    public function addInvoiceItems(array $visit, string $invoiceId): void
+    {
+        $rows = [];
+        foreach ($this->projectedItems($visit) as $item) {
+            $rows[] = [
+                $invoiceId, $visit['id'], $item['item_type'], $item['description'], $item['quantity'], $item['unit_price'],
+                $item['visit_procedure_id'], $item['lab_order_item_id'], $item['prescription_item_id'],
+            ];
+        }
+
+        $this->db->createCommand()->batchInsert('invoice_items', [
+            'invoice_id', 'visit_id', 'item_type', 'description', 'quantity', 'unit_price',
+            'visit_procedure_id', 'lab_order_item_id', 'prescription_item_id',
+        ], $rows)->execute();
+    }
+
     private function estimate(array $visit): array
     {
-        $rows = $this->db->createCommand(<<<'SQL'
-            SELECT item_type, description, quantity, unit_price,
+        $rows = $this->projectedItems($visit);
+
+        return [
+            'invoice' => null,
+            'total_amount' => (string) $rows[0]['total_amount'],
+            'items' => array_map($this->line(...), $rows),
+        ];
+    }
+
+    private function projectedItems(array $visit): array
+    {
+        return $this->db->createCommand(<<<'SQL'
+            SELECT item_type, description, quantity, unit_price, visit_procedure_id, lab_order_item_id, prescription_item_id,
                 quantity * unit_price AS subtotal, SUM(quantity * unit_price) OVER () AS total_amount
             FROM (
                 SELECT 0 AS position, 0::bigint AS line_id, 'registration' AS item_type, 'Pendaftaran rawat jalan' AS description,
-                    1 AS quantity, CAST(:registration_fee AS numeric) AS unit_price
+                    1 AS quantity, CAST(:registration_fee AS numeric) AS unit_price,
+                    NULL::bigint AS visit_procedure_id, NULL::bigint AS lab_order_item_id, NULL::bigint AS prescription_item_id
                 UNION ALL
-                SELECT 1, item.id, 'procedure', master.name, item.quantity, item.unit_price
+                SELECT 1, item.id, 'procedure', master.name, item.quantity, item.unit_price, item.id, NULL, NULL
                 FROM visit_procedures AS item
                 JOIN medical_procedures AS master ON master.id = item.procedure_id
                 WHERE item.visit_id = :procedure_visit_id AND item.cancelled_at IS NULL
                 UNION ALL
-                SELECT 2, item.id, 'medicine', medicine.name, item.quantity, item.unit_price
+                SELECT 2, item.id, 'lab', test.name, 1, item.unit_price, NULL, item.id, NULL
+                FROM lab_order_items AS item
+                JOIN lab_orders AS lab ON lab.id = item.lab_order_id
+                JOIN lab_tests AS test ON test.id = item.lab_test_id
+                WHERE item.visit_id = :lab_visit_id AND lab.status = 'completed'
+                UNION ALL
+                SELECT 3, item.id, 'medicine', medicine.name, item.quantity, item.unit_price, NULL, NULL, item.id
                 FROM prescription_items AS item
                 JOIN prescriptions AS rx ON rx.id = item.prescription_id
                 JOIN medicines AS medicine ON medicine.id = item.medicine_id
@@ -142,14 +196,9 @@ final class VisitCharges
             SQL, [
                 ':registration_fee' => $visit['registration_fee'],
                 ':procedure_visit_id' => $visit['id'],
+                ':lab_visit_id' => $visit['id'],
                 ':prescription_visit_id' => $visit['id'],
             ])->queryAll();
-
-        return [
-            'invoice' => null,
-            'total_amount' => (string) $rows[0]['total_amount'],
-            'items' => array_map($this->line(...), $rows),
-        ];
     }
 
     private function line(array $row): array
