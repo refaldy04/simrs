@@ -28,6 +28,14 @@
     {
       "key": "masterPatientId",
       "value": ""
+    },
+    {
+      "key": "registrationDate",
+      "value": "2026-11-23"
+    },
+    {
+      "key": "registrationPatientId",
+      "value": ""
     }
   ],
   "item": [
@@ -362,7 +370,7 @@
                   "    const page = pm.response.json();",
                   "    pm.test(\"Pencarian dan pagination\", function () {",
                   "        pm.expect(page.total).to.be.at.least(1);",
-                "        pm.expect(page.items.length).to.be.within(1, 2);",
+                  "        pm.expect(page.items.length).to.be.within(1, 2);",
                   "    });",
                   "    if (page.items.length) pm.collectionVariables.set(\"masterPatientId\", page.items[0].id);",
                   "}"
@@ -436,6 +444,186 @@
                   "});",
                   "pm.collectionVariables.unset(\"accessToken\");",
                   "pm.collectionVariables.unset(\"masterPatientId\");"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Pendaftaran dan Antrean",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{accessToken}}",
+            "type": "string"
+          }
+        ]
+      },
+      "item": [
+        {
+          "name": "Login petugas pendaftaran",
+          "request": {
+            "method": "POST",
+            "url": "{{backendUrl}}/auth/login",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"demo.pendaftaran\",\n  \"password\": \"{{demoPassword}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.collectionVariables.unset(\"accessToken\");",
+                  "if (pm.response.code === 200) {",
+                  "    pm.collectionVariables.set(\"accessToken\", pm.response.json().access_token);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cari pasien untuk pendaftaran",
+          "request": {
+            "method": "GET",
+            "url": "{{backendUrl}}/registration/patients?q=DEMO-RM-005"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.collectionVariables.unset(\"registrationPatientId\");",
+                  "if (pm.response.code === 200) {",
+                  "    const items = pm.response.json().items;",
+                  "    pm.test(\"Pasien ditemukan dari nomor rekam medis\", function () {",
+                  "        pm.expect(items[0].medical_record_no).to.equal(\"DEMO-RM-005\");",
+                  "    });",
+                  "    if (items.length) pm.collectionVariables.set(\"registrationPatientId\", items[0].id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Riwayat kunjungan pasien",
+          "request": {
+            "method": "GET",
+            "url": "{{backendUrl}}/registration/patients/{{registrationPatientId}}/visits"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Riwayat sesuai pasien\", function () {",
+                  "    const page = pm.response.json();",
+                  "    pm.expect(page.total).to.be.at.least(1);",
+                  "    for (const visit of page.items) {",
+                  "        pm.expect(visit.patient_id).to.equal(pm.collectionVariables.get(\"registrationPatientId\"));",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Jadwal praktik tanggal demo",
+          "request": {
+            "method": "GET",
+            "url": "{{backendUrl}}/registration/schedules?date={{registrationDate}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Jadwal sesuai tanggal layanan\", function () {",
+                  "    const schedules = pm.response.json();",
+                  "    pm.expect(schedules.date).to.equal(pm.collectionVariables.get(\"registrationDate\"));",
+                  "    pm.expect(schedules.items.length).to.be.at.least(1);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Antrean tanggal demo",
+          "request": {
+            "method": "GET",
+            "url": "{{backendUrl}}/registration/visits?date={{registrationDate}}&page_size=5"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Antrean dan poli tersedia\", function () {",
+                  "    const queue = pm.response.json();",
+                  "    pm.expect(queue.total).to.be.at.least(1);",
+                  "    pm.expect(queue.clinics).to.be.an(\"array\");",
+                  "    for (const visit of queue.items) pm.expect(visit.queue_number).to.be.above(0);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Logout pendaftaran",
+          "request": {
+            "method": "POST",
+            "url": "{{backendUrl}}/auth/logout"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 204\", function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});",
+                  "pm.collectionVariables.unset(\"accessToken\");",
+                  "pm.collectionVariables.unset(\"registrationPatientId\");"
                 ]
               }
             }

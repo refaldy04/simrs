@@ -1,47 +1,57 @@
+import {
+  Alert, Button, Chip, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography,
+} from '@mui/material';
 import { useEffect, useState } from 'react';
-import { coreRequest } from '../api.js';
+import { ListPagination } from '../components/ListPagination.jsx';
+import { LoadStatus } from '../components/LoadStatus.jsx';
+import { SelectField } from '../components/SelectField.jsx';
+import { archiveMasterRecord, listMasterRecords, listMasterResources } from '../service/masterDataService.js';
 import { displayValue } from './format.js';
 import { MasterRecordDialog } from './MasterRecordDialog.jsx';
-import './master.css';
 
 function RecordsTable({ resource, items, archiving, onOpen, onArchive }) {
   const columns = Object.entries(resource.columns);
 
   return (
-    <div className="master-table-scroll" tabIndex={0} aria-label={'Daftar ' + resource.label.toLowerCase()}>
-      <table className="master-table">
-        <thead>
-          <tr>
-            {columns.map(([key, label]) => <th key={key} scope="col">{label}</th>)}
-            <th scope="col">Status</th>
-            <th scope="col">Aksi</th>
-          </tr>
-        </thead>
-        <tbody>
+    <TableContainer tabIndex={0} className="rounded-lg border border-slate-200">
+      <Table size="small" aria-label={'Daftar ' + resource.label.toLowerCase()} className="min-w-[36rem]">
+        <TableHead className="bg-slate-50">
+          <TableRow>
+            {columns.map(([key, label]) => <TableCell key={key} scope="col">{label}</TableCell>)}
+            <TableCell scope="col">Status</TableCell>
+            <TableCell scope="col">Aksi</TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
           {items.map((record) => (
-            <tr key={record.id}>
-              {columns.map(([key]) => <td key={key}>{displayValue(record, key, resource.fields[key])}</td>)}
-              <td>
-                <span className="master-status" data-active={record.is_active}>
-                  {record.is_active ? 'Aktif' : 'Nonaktif'}
-                </span>
-              </td>
-              <td>
-                <div className="master-row-actions">
-                  <button type="button" onClick={() => onOpen({ mode: 'view', id: record.id })}>Lihat</button>
-                  <button type="button" onClick={() => onOpen({ mode: 'edit', id: record.id })}>Ubah</button>
+            <TableRow key={record.id} hover>
+              {columns.map(([key]) => (
+                <TableCell key={key} className="wrap-anywhere">{displayValue(record, key, resource.fields[key])}</TableCell>
+              ))}
+              <TableCell>
+                <Chip
+                  size="small"
+                  variant="outlined"
+                  color={record.is_active ? 'success' : 'default'}
+                  label={record.is_active ? 'Aktif' : 'Nonaktif'}
+                />
+              </TableCell>
+              <TableCell>
+                <div className="flex flex-wrap gap-1">
+                  <Button size="small" onClick={() => onOpen({ mode: 'view', id: record.id })}>Lihat</Button>
+                  <Button size="small" onClick={() => onOpen({ mode: 'edit', id: record.id })}>Ubah</Button>
                   {record.is_active && (
-                    <button type="button" className="archive-action" disabled={archiving !== null} onClick={() => onArchive(record)}>
+                    <Button size="small" color="error" disabled={archiving !== null} onClick={() => onArchive(record)}>
                       {archiving === record.id ? 'Memproses…' : 'Nonaktifkan'}
-                    </button>
+                    </Button>
                   )}
                 </div>
-              </td>
-            </tr>
+              </TableCell>
+            </TableRow>
           ))}
-        </tbody>
-      </table>
-    </div>
+        </TableBody>
+      </Table>
+    </TableContainer>
   );
 }
 
@@ -50,45 +60,65 @@ function MasterRecords({ resource, token, onUnauthorized }) {
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState('active');
   const [page, setPage] = useState(1);
-  const [revision, setRevision] = useState(0);
+  const [reloadCount, setReloadCount] = useState(0);
   const [result, setResult] = useState(null);
   const [loadError, setLoadError] = useState('');
   const [actionError, setActionError] = useState('');
   const [notice, setNotice] = useState('');
   const [dialog, setDialog] = useState(null);
   const [archiving, setArchiving] = useState(null);
-  const path = 'master-data/' + resource.key;
+  const resourceKey = resource.key;
 
   useEffect(() => {
     const controller = new AbortController();
     const { signal } = controller;
-    const params = new URLSearchParams({ q: query, status, page: String(page), page_size: '10' });
     setResult(null);
     setLoadError('');
-    coreRequest(path + '?' + params.toString(), { token, signal }).then(
-      (data) => {
+
+    async function loadRecords() {
+      try {
+        const data = await listMasterRecords(resourceKey, { query, status, page }, { token, signal });
         if (signal.aborted) return;
+
         const lastPage = Math.max(1, Math.ceil(data.total / data.page_size));
         if (page > lastPage) setPage(lastPage);
         else setResult(data);
-      },
-      (error) => {
+      } catch (error) {
         if (signal.aborted) return;
         if (error.status === 401) onUnauthorized();
         else setLoadError(error.message);
-      },
-    );
-    return () => controller.abort();
-  }, [page, path, query, revision, status, token, onUnauthorized]);
+      }
+    }
 
-  function refresh() {
-    setRevision((value) => value + 1);
+    loadRecords();
+    return () => controller.abort();
+  }, [resourceKey, page, query, reloadCount, status, token, onUnauthorized]);
+
+  function reloadRecords() {
+    setReloadCount((count) => count + 1);
   }
 
-  function openDialog(next) {
+  function searchRecords(event) {
+    event.preventDefault();
+    setQuery(searchDraft.trim());
+    setPage(1);
+  }
+
+  function changeStatus(event) {
+    setStatus(event.target.value);
+    setPage(1);
+  }
+
+  function openDialog(nextDialog) {
     setNotice('');
     setActionError('');
-    setDialog(next);
+    setDialog(nextDialog);
+  }
+
+  function recordSaved(message) {
+    setDialog(null);
+    setNotice(message);
+    reloadRecords();
   }
 
   async function archive(record) {
@@ -98,9 +128,9 @@ function MasterRecords({ resource, token, onUnauthorized }) {
     setNotice('');
     setActionError('');
     try {
-      await coreRequest(path + '/' + record.id, { token, method: 'DELETE' });
+      await archiveMasterRecord(resourceKey, record.id, { token });
       setNotice('Data dinonaktifkan.');
-      refresh();
+      reloadRecords();
     } catch (error) {
       if (error.status === 401) onUnauthorized();
       else setActionError(error.message);
@@ -110,65 +140,44 @@ function MasterRecords({ resource, token, onUnauthorized }) {
   }
 
   return (
-    <section className="panel master-records" aria-labelledby="master-records-title">
-      <div className="master-records-heading">
-        <h2 id="master-records-title">{resource.label}</h2>
-        <button className="button" type="button" onClick={() => openDialog({ mode: 'create' })}>
+    <Paper component="section" variant="outlined" aria-labelledby="master-records-title" className="grid min-w-0 gap-4 p-4 sm:p-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Typography id="master-records-title" component="h2" variant="h6">{resource.label}</Typography>
+        <Button variant="contained" onClick={() => openDialog({ mode: 'create' })}>
           Tambah {resource.label.toLowerCase()}
-        </button>
+        </Button>
       </div>
-      <div className="master-toolbar">
-        <form className="master-search" onSubmit={(event) => {
-          event.preventDefault();
-          setQuery(searchDraft.trim());
-          setPage(1);
-        }}>
-          <label htmlFor="master-search">Pencarian</label>
-          <div>
-            <input id="master-search" type="search" value={searchDraft} maxLength={150}
-              onChange={(event) => setSearchDraft(event.target.value)} />
-            <button className="button button-secondary" type="submit">Cari</button>
-          </div>
+      <div className="grid gap-3 sm:flex sm:flex-wrap">
+        <form className="flex min-w-0 gap-2" onSubmit={searchRecords}>
+          <TextField
+            id="master-search"
+            label="Pencarian"
+            size="small"
+            type="search"
+            value={searchDraft}
+            onChange={(event) => setSearchDraft(event.target.value)}
+            slotProps={{ htmlInput: { maxLength: 150 } }}
+            className="min-w-0"
+          />
+          <Button variant="outlined" type="submit">Cari</Button>
         </form>
-        <div className="master-filter">
-          <label htmlFor="master-status">Status</label>
-          <select id="master-status" value={status} onChange={(event) => {
-            setStatus(event.target.value);
-            setPage(1);
-          }}>
-            <option value="active">Aktif</option>
-            <option value="inactive">Nonaktif</option>
-            <option value="all">Semua</option>
-          </select>
-        </div>
+        <SelectField id="master-status" label="Status" value={status} onChange={changeStatus} className="min-w-36">
+          <option value="active">Aktif</option>
+          <option value="inactive">Nonaktif</option>
+          <option value="all">Semua</option>
+        </SelectField>
       </div>
-      {notice && <p className="master-notice" role="status">{notice}</p>}
-      {actionError && <p className="feedback" role="alert">{actionError}</p>}
-      {loadError ? (
+      {notice && <Alert severity="success" role="status">{notice}</Alert>}
+      {actionError && <Alert severity="error">{actionError}</Alert>}
+      <LoadStatus loading={result === null} text="Memuat daftar…" error={loadError} onRetry={reloadRecords} />
+      {result && (
         <>
-          <p className="feedback" role="alert">{loadError}</p>
-          <button type="button" className="button button-secondary" onClick={refresh}>Coba lagi</button>
-        </>
-      ) : !result ? <p role="status">Memuat daftar…</p> : (
-        <>
-          {result.items.length ? (
-            <RecordsTable
-              resource={resource}
-              items={result.items}
-              archiving={archiving}
-              onOpen={openDialog}
-              onArchive={archive}
-            />
-          ) : <p className="master-empty">Belum ada data yang cocok.</p>}
-          <div className="master-pagination" aria-label="Halaman data">
-            <span>{result.total.toLocaleString('id-ID')} data · Halaman {result.page}</span>
-            <div>
-              <button className="button button-secondary" type="button" disabled={page === 1}
-                onClick={() => setPage((value) => value - 1)}>Sebelumnya</button>
-              <button className="button button-secondary" type="button" disabled={page * result.page_size >= result.total}
-                onClick={() => setPage((value) => value + 1)}>Berikutnya</button>
-            </div>
-          </div>
+          {result.items.length > 0 ? (
+            <RecordsTable resource={resource} items={result.items} archiving={archiving} onOpen={openDialog} onArchive={archive} />
+          ) : (
+            <Typography color="text.secondary">Belum ada data yang cocok.</Typography>
+          )}
+          <ListPagination data={result} onPage={setPage} showTotal />
         </>
       )}
       {dialog && (
@@ -181,14 +190,10 @@ function MasterRecords({ resource, token, onUnauthorized }) {
           onUnauthorized={onUnauthorized}
           onClose={() => setDialog(null)}
           onEdit={() => setDialog({ mode: 'edit', id: dialog.id })}
-          onSaved={(message) => {
-            setDialog(null);
-            setNotice(message);
-            refresh();
-          }}
+          onSaved={recordSaved}
         />
       )}
-    </section>
+    </Paper>
   );
 }
 
@@ -200,47 +205,57 @@ export function MasterDataPage({ token, requestedKey, onUnauthorized }) {
   useEffect(() => {
     const controller = new AbortController();
     const { signal } = controller;
-    coreRequest('master-data', { token, signal }).then(
-      ({ resources }) => { if (!signal.aborted) setResources(resources); },
-      (failure) => {
+
+    async function loadResources() {
+      try {
+        const data = await listMasterResources({ token, signal });
+        if (!signal.aborted) setResources(data.resources);
+      } catch (failure) {
         if (signal.aborted) return;
         if (failure.status === 401) onUnauthorized();
         else setError(failure.message);
-      },
-    );
+      }
+    }
+
+    loadResources();
     return () => controller.abort();
   }, [onUnauthorized, retry, token]);
+
+  function retryResources() {
+    setError('');
+    setRetry((count) => count + 1);
+  }
 
   const selected = resources?.find((resource) => resource.key === requestedKey) ?? resources?.[0];
   if (!selected) {
     return (
-      <section className="panel" aria-labelledby="master-data-title">
-        <h2 id="master-data-title">Master data</h2>
-        {error ? (
-          <>
-            <p className="feedback" role="alert">{error}</p>
-            <button className="button button-secondary" type="button" onClick={() => {
-              setError('');
-              setRetry((value) => value + 1);
-            }}>Coba lagi</button>
-          </>
-        ) : <p role="status">Memuat master data…</p>}
-      </section>
+      <Paper component="section" variant="outlined" aria-labelledby="master-data-title" className="grid gap-3 p-4 sm:p-6">
+        <Typography id="master-data-title" component="h2" variant="h6">Master data</Typography>
+        <LoadStatus loading={resources === null} text="Memuat master data…" error={error} onRetry={retryResources} />
+        {resources?.length === 0 && <Typography>Belum ada master data yang bisa dibuka.</Typography>}
+      </Paper>
     );
   }
 
+  if (resources.length === 1) {
+    return <MasterRecords key={selected.key} resource={selected} token={token} onUnauthorized={onUnauthorized} />;
+  }
+
   return (
-    <div className={resources.length > 1 ? 'master-layout' : undefined}>
-      {resources.length > 1 && (
-        <nav className="panel master-resources" aria-label="Jenis master data">
-          {resources.map((resource) => (
-            <a key={resource.key} href={'#/master-data/' + resource.key}
-              aria-current={resource.key === selected.key ? 'page' : undefined}>
-              {resource.label}
-            </a>
-          ))}
-        </nav>
-      )}
+    <div className="grid min-w-0 items-start gap-4 lg:grid-cols-[14rem_minmax(0,1fr)]">
+      <Paper component="nav" variant="outlined" aria-label="Jenis master data" className="flex flex-wrap gap-1 p-2 lg:grid">
+        {resources.map((resource) => (
+          <Button
+            key={resource.key}
+            href={'#/master-data/' + resource.key}
+            variant={resource.key === selected.key ? 'contained' : 'text'}
+            aria-current={resource.key === selected.key ? 'page' : undefined}
+            className="justify-start"
+          >
+            {resource.label}
+          </Button>
+        ))}
+      </Paper>
       <MasterRecords key={selected.key} resource={selected} token={token} onUnauthorized={onUnauthorized} />
     </div>
   );

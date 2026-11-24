@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace app\controllers;
 
+use app\http\RequestInput;
 use app\master\InvalidMasterData;
 use app\master\MasterCatalog;
 use app\master\MasterData;
-use app\master\MasterInput;
 use Yii;
 use yii\db\IntegrityException;
 use yii\web\BadRequestHttpException;
@@ -16,7 +16,6 @@ use yii\web\Controller;
 use yii\web\ForbiddenHttpException;
 use yii\web\NotFoundHttpException;
 use yii\web\Response;
-use yii\web\UnsupportedMediaTypeHttpException;
 
 final class MasterDataController extends Controller
 {
@@ -46,21 +45,14 @@ final class MasterDataController extends Controller
     {
         $definition = $this->authorize($resource);
         $request = Yii::$app->getRequest();
-        $term = $request->get('q', '');
+        $term = RequestInput::searchTerm($request);
         $status = $request->get('status', 'active');
-        $page = filter_var($request->get('page', 1), FILTER_VALIDATE_INT, [
-            'options' => ['min_range' => 1, 'max_range' => intdiv(PHP_INT_MAX, 100)],
-        ]);
-        $pageSize = filter_var($request->get('page_size', 20), FILTER_VALIDATE_INT, [
-            'options' => ['min_range' => 1, 'max_range' => 100],
-        ]);
-        if (!is_string($term) || mb_strlen($term) > 150 || str_contains($term, "\0")
-            || !in_array($status, ['active', 'inactive', 'all'], true) || $page === false || $pageSize === false
-        ) {
-            throw new BadRequestHttpException('Parameter pencarian, status, atau halaman tidak valid.');
+        [$page, $pageSize] = RequestInput::pagination($request);
+        if (!in_array($status, ['active', 'inactive', 'all'], true)) {
+            throw new BadRequestHttpException('Parameter status tidak valid.');
         }
 
-        return $this->data($resource, $definition)->page(trim($term), $status, $page, $pageSize);
+        return $this->data($resource, $definition)->page($term, $status, $page, $pageSize);
     }
 
     public function actionView(string $resource, string $id): array
@@ -81,7 +73,7 @@ final class MasterDataController extends Controller
     {
         $definition = $this->authorize($resource);
         $master = $this->data($resource, $definition);
-        $body = $this->body();
+        $body = RequestInput::jsonObject(Yii::$app->getRequest());
         $actorId = (string) Yii::$app->getUser()->getId();
 
         return $this->write(fn () => $master->create($body, $actorId), $definition['duplicate'], 201);
@@ -92,7 +84,7 @@ final class MasterDataController extends Controller
         $definition = $this->authorize($resource);
         $master = $this->data($resource, $definition);
         $id = $this->recordId($id);
-        $body = $this->body();
+        $body = RequestInput::jsonObject(Yii::$app->getRequest());
         $actorId = (string) Yii::$app->getUser()->getId();
 
         return $this->write(fn () => $master->update($id, $body, $actorId), $definition['duplicate']);
@@ -128,21 +120,7 @@ final class MasterDataController extends Controller
 
     private function recordId(string $id): string
     {
-        return MasterInput::id($id) ?? throw new NotFoundHttpException('Data tidak ditemukan.');
-    }
-
-    private function body(): array
-    {
-        $request = Yii::$app->getRequest();
-        $contentType = strtolower(trim(explode(';', (string) $request->getContentType(), 2)[0]));
-        if ($contentType !== 'application/json') {
-            throw new UnsupportedMediaTypeHttpException('Kirim data dalam format JSON.');
-        }
-        if (!str_starts_with(ltrim($request->getRawBody()), '{')) {
-            throw new BadRequestHttpException('Body permintaan harus berupa objek JSON.');
-        }
-
-        return $request->getBodyParams();
+        return RequestInput::id($id) ?? throw new NotFoundHttpException('Data tidak ditemukan.');
     }
 
     private function write(callable $operation, string $duplicateMessage, int $successStatus = 200): array

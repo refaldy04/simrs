@@ -31,6 +31,12 @@ Penonaktifan memakai `is_active` agar referensi kunjungan dan riwayat tarif teta
 
 Penulisan jadwal mengunci baris dokter untuk memeriksa benturan sesi aktif. Penyesuaian stok mengunci baris obat, membandingkan stok sebelumnya, lalu menyimpan stok dan mutasi dalam satu transaksi. [Penguncian baris PostgreSQL](https://www.postgresql.org/docs/17/explicit-locking.html#LOCKING-ROWS)
 
+## Pendaftaran dan nomor antrean
+
+Yii2 memeriksa pasien dan sesi aktif dalam transaksi yang sama dengan penyimpanan kunjungan. Sesi menentukan dokter, poli, dan tanggal. Yii2 menyalin tarif poli ke kunjungan saat mendaftar. Penguncian baris menjaga pilihan itu konsisten selama transaksi berjalan. [Penguncian baris PostgreSQL](https://www.postgresql.org/docs/17/explicit-locking.html#LOCKING-ROWS)
+
+Counter `visit_queue_counters` menaikkan nomor per poli dan tanggal dengan `INSERT ... ON CONFLICT ... DO UPDATE RETURNING`. Indeks unik parsial di `visits` menolak pendaftaran ulang selama kunjungan sebelumnya belum dibatalkan. Transaksi mengembalikan counter ke nilai sebelumnya saat pendaftaran ditolak. Pembatalan mengubah status dan mencatat aktor di `audit_logs` dalam satu transaksi. Nomor yang dibatalkan tetap tercatat, sehingga pendaftaran berikutnya mendapat nomor baru. [INSERT PostgreSQL](https://www.postgresql.org/docs/17/sql-insert.html)
+
 ## Rancangan transaksi aplikasi
 
 | Skenario | Aturan basis data dan alur transaksi |

@@ -111,3 +111,11 @@ Folder Autentikasi dan Akses pada koleksi Postman menguji login, profil, izin ke
 Masuk sebagai `demo.admin` lalu buka menu **Master data** untuk mengelola pasien, tenaga medis, dokter, poli, jadwal praktik, tindakan medis, obat, dan pemeriksaan lab. Akun `demo.pendaftaran` mendapat menu pasien.
 
 Gunakan pencarian dan filter status untuk menemukan data. Untuk mengaktifkan kembali data, pilih status **Nonaktif**, buka **Ubah**, lalu centang **Aktif**. [Dokumentasi API master data](docs/api.md#master-data)
+
+### Pendaftaran, jadwal, dan antrean
+
+Masuk sebagai `demo.pendaftaran` dan buka **Pendaftaran & antrean**. Pilih tanggal layanan, cari pasien dengan nomor rekam medis, nomor identitas, atau nama, lalu pilih poli dan sesi dokter. Nomor antrean tampil setelah kunjungan tersimpan. Riwayat tampil saat pasien dipilih.
+
+Tab **Jadwal** menampilkan sesi aktif pada tanggal yang dipilih. Di tab **Antrean**, petugas dapat menyaring poli dan status, memuat ulang daftar, serta membatalkan kunjungan berstatus **Menunggu**. Akun dokter dapat melihat jadwal dan antreannya sendiri melalui **Jadwal & antrean**.
+
+Tanggal bawaan mengikuti `Asia/Jakarta`. Data demo tersedia pada **23 November 2026**. Untuk mencoba pendaftaran, cari `DEMO-RM-005` dan pilih **Poli Penyakit Dalam Demo** pada tanggal tersebut. [Buka pendaftaran demo](http://127.0.0.1:5173/#/registration?date=2026-11-23) · [Dokumentasi API](docs/api.md#pendaftaran-jadwal-dan-antrean)

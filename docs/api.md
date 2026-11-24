@@ -58,3 +58,31 @@ Obat menerima `stock_quantity` saat dibuat. Untuk menyesuaikan stok, kirim jumla
 ```
 
 Folder **Master Data** memeriksa katalog, pencarian dan pagination pasien, detail pasien, serta pilihan jadwal dengan akun admin demo. [Koleksi SIMRS](../postman/SIMRS.postman_collection.json)
+
+## Pendaftaran, jadwal, dan antrean
+
+Endpoint menggunakan token Bearer Yii2. `visits.register` memberi akses untuk mencari pasien, membaca riwayat, mendaftarkan, dan membatalkan kunjungan. `visits.queue` memberi akses baca jadwal dan antrean. Akun dokter mendapat hasil untuk sesi yang ditautkan ke akunnya.
+
+| Metode dan path | Respons |
+| --- | --- |
+| `GET /registration/patients?q=DEMO-RM-005` | `200` dengan pasien aktif sesuai nomor rekam medis, nomor identitas, atau nama. |
+| `GET /registration/patients/{id}/visits` | `200` dengan riwayat kunjungan pasien, urut tanggal terbaru. |
+| `GET /registration/schedules?date=2026-11-23` | `200` dengan daftar sesi aktif dan tarif pendaftaran poli. |
+| `GET /registration/visits?date=2026-11-23` | `200` dengan daftar antrean, metadata halaman, dan pilihan `clinics`. Filter opsional memakai `clinic_id` dan `status`. |
+| `POST /registration/visits` | `201` dengan nomor antrean dan detail kunjungan berstatus `waiting`. |
+| `POST /registration/visits/{id}/cancel` | `200` dengan detail kunjungan berstatus `cancelled`. |
+
+Daftar pasien, riwayat, dan antrean menerima `page` dan `page_size`. `date` memakai format `YYYY-MM-DD` dan secara bawaan memakai hari ini di `Asia/Jakarta`. `status` menerima `all`, `waiting`, `in_examination`, `awaiting_billing`, `completed`, atau `cancelled`.
+
+Pendaftaran menerima dua ID dalam body JSON. Yii2 mengambil poli, tanggal, dan tarif dari sesi yang dipilih dan menyimpan tarif pada kunjungan.
+
+```json
+{
+  "patient_id": "5",
+  "schedule_id": "2"
+}
+```
+
+Pasien atau jadwal yang sudah nonaktif menghasilkan `422`. Pendaftaran kedua untuk pasien, poli, dan tanggal yang sama menghasilkan `409` selama kunjungan sebelumnya belum dibatalkan. Pembatalan tersedia untuk status `waiting`. Mengulangi pembatalan kunjungan yang sudah `cancelled` mengembalikan status yang sama. Nomor antrean yang dibatalkan tersimpan di riwayat.
+
+Folder **Pendaftaran dan Antrean** memeriksa jadwal, pencarian pasien, riwayat, dan daftar antrean dari data demo. [Koleksi SIMRS](../postman/SIMRS.postman_collection.json)

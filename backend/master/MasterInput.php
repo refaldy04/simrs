@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace app\master;
 
+use app\http\RequestInput;
+
 final class MasterInput
 {
     public static function validate(array $fields, array $body, bool $creating): array
@@ -39,10 +41,10 @@ final class MasterInput
             $normalized = match ($field['type']) {
                 'text', 'textarea' => self::text($value, $field['max_length'] ?? null),
                 'boolean' => is_bool($value) ? $value : null,
-                'relation' => self::id($value),
+                'relation' => RequestInput::id($value),
                 'integer' => self::integer($value),
                 'money' => self::money($value),
-                'date' => self::date($value),
+                'date' => RequestInput::date($value),
                 'time' => self::time($value),
                 'choice' => is_string($value) && isset($field['choices'][$value]) ? $value : null,
             };
@@ -59,22 +61,6 @@ final class MasterInput
         }
 
         return $values;
-    }
-
-    public static function id(mixed $value): ?string
-    {
-        if (!is_int($value) && !is_string($value)) {
-            return null;
-        }
-
-        $id = (string) $value;
-        if (!preg_match('/\A[1-9][0-9]{0,18}\z/', $id)
-            || (strlen($id) === 19 && strcmp($id, '9223372036854775807') > 0)
-        ) {
-            return null;
-        }
-
-        return $id;
     }
 
     private static function text(mixed $value, ?int $maxLength): ?string
@@ -104,15 +90,6 @@ final class MasterInput
         }
 
         return is_string($value) && preg_match('/\A[0-9]{1,12}(?:\.[0-9]{1,2})?\z/', $value) ? $value : null;
-    }
-
-    private static function date(mixed $value): ?string
-    {
-        if (!is_string($value) || !preg_match('/\A([0-9]{4})-([0-9]{2})-([0-9]{2})\z/', $value, $parts)) {
-            return null;
-        }
-
-        return checkdate((int) $parts[2], (int) $parts[3], (int) $parts[1]) ? $value : null;
     }
 
     private static function time(mixed $value): ?string

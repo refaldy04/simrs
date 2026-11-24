@@ -1,21 +1,19 @@
+import { Alert, Button, Paper, TextField, Typography } from '@mui/material';
 import { useState } from 'react';
-import { coreRequest } from './api.js';
+import { login } from './service/authService.js';
 
 export function LoginForm({ notice, onLogin }) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState('');
 
-  async function submit(event) {
+  async function handleSubmit(event) {
     event.preventDefault();
+    const values = new FormData(event.currentTarget);
     setPending(true);
     setError('');
-    const values = new FormData(event.currentTarget);
 
     try {
-      const session = await coreRequest('auth/login', {
-        method: 'POST',
-        body: { username: values.get('username'), password: values.get('password') },
-      });
+      const session = await login(values.get('username'), values.get('password'));
       onLogin(session);
     } catch (failure) {
       setError(failure.message);
@@ -25,18 +23,30 @@ export function LoginForm({ notice, onLogin }) {
   }
 
   return (
-    <section className="panel" aria-labelledby="login-title">
-      <h2 id="login-title">Masuk</h2>
-      <form className="login-form" onSubmit={submit}>
-        <label htmlFor="username">Nama pengguna</label>
-        <input id="username" name="username" autoComplete="username" maxLength={64} required />
-        <label htmlFor="password">Kata sandi</label>
-        <input id="password" name="password" type="password" autoComplete="current-password" required />
-        {(error || notice) && <p className="feedback" role="alert">{error || notice}</p>}
-        <button className="button" type="submit" disabled={pending}>
+    <Paper component="section" variant="outlined" aria-labelledby="login-title" className="grid gap-4 p-5 sm:p-6">
+      <Typography id="login-title" component="h2" variant="h6">Masuk</Typography>
+      <form className="grid gap-4" onSubmit={handleSubmit}>
+        <TextField
+          id="username"
+          name="username"
+          label="Nama pengguna"
+          autoComplete="username"
+          slotProps={{ htmlInput: { maxLength: 64 } }}
+          required
+        />
+        <TextField
+          id="password"
+          name="password"
+          label="Kata sandi"
+          type="password"
+          autoComplete="current-password"
+          required
+        />
+        {(error || notice) && <Alert severity="error">{error || notice}</Alert>}
+        <Button variant="contained" type="submit" disabled={pending}>
           {pending ? 'Sedang masuk…' : 'Masuk'}
-        </button>
+        </Button>
       </form>
-    </section>
+    </Paper>
   );
 }
