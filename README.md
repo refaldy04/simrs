@@ -154,7 +154,9 @@ SIMRS_TEST_API_URL=http://127.0.0.1:17808 node --test tests/pharmacy-stock.integ
 
 Masuk sebagai `demo.kasir` dan buka **Tagihan**. Cari pasien berdasarkan nama, nomor rekam medis, atau nomor invoice. `DEMO-RM-002` menyediakan contoh tagihan yang dibayar sebagian. Untuk kunjungan yang baru selesai diperiksa, pilih **Terbitkan tagihan** untuk menyimpan rincian biaya. [Buka Tagihan](http://127.0.0.1:5173/#/billing)
 
-Isi nominal dan pilih **Tunai** atau **Non-tunai (simulasi)**. **Isi sisa tagihan** menyalin saldo terbaru yang ditampilkan. Jika hasil transaksi belum terkonfirmasi, tombol **Kirim ulang pembayaran** memakai kunci yang sama. Setelah transaksi tercatat, invoice dan bukti bayar dapat dicetak. Riwayat pembayaran menampilkan transaksi pasien dari kunjungan sebelumnya. [Dokumentasi API](docs/api.md#billing-dan-pembayaran)
+Isi nominal dan pilih **Tunai** atau **Non-tunai (simulasi)**. **Isi sisa tagihan** menyalin saldo terbaru yang ditampilkan. Jika hasil transaksi belum terkonfirmasi, tombol **Kirim ulang pembayaran** memakai kunci yang sama. Riwayat pembayaran menampilkan transaksi pasien dari kunjungan sebelumnya dan menyediakan tombol **Cetak bukti bayar**. [Dokumentasi API](docs/api.md#billing-dan-pembayaran)
+
+Untuk invoice yang sudah terbit, klik **Cetak invoice** dari detail tagihan. Periksa rincian dan saldo pada pratinjau, lalu klik **Cetak / Simpan PDF** dan pilih printer atau **Simpan sebagai PDF** di dialog browser. Dokumen menggunakan kertas A4.
 
 Contoh berikut memakai data fiktif dari pengujian. [Tampilan tagihan](docs/screenshots/billing.png) · [Invoice PDF](docs/screenshots/invoice-demo.pdf) · [Bukti bayar PDF](docs/screenshots/bukti-bayar-demo.pdf)
 

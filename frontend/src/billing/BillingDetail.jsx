@@ -5,7 +5,7 @@ import { formatDate } from '../format.js';
 import { VisitStatus } from '../registration/VisitTable.jsx';
 import { getBillingDetail, issueInvoice } from '../service/billingService.js';
 import { BillingComponents } from './BillingComponents.jsx';
-import { BillingPrint } from './BillingPrint.jsx';
+import { ReceiptPrint } from './BillingPrint.jsx';
 import { PaymentForm } from './PaymentForm.jsx';
 import { PaymentHistory } from './PaymentHistory.jsx';
 
@@ -17,7 +17,7 @@ export function BillingDetail({ visitId, token, onUnauthorized }) {
   const [issuing, setIssuing] = useState(false);
   const [paymentCount, setPaymentCount] = useState(0);
   const [notice, setNotice] = useState(null);
-  const [printJob, setPrintJob] = useState(null);
+  const [receiptToPrint, setReceiptToPrint] = useState(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -40,16 +40,16 @@ export function BillingDetail({ visitId, token, onUnauthorized }) {
   }, [visitId, token, retry, onUnauthorized]);
 
   useEffect(() => {
-    if (!printJob) return;
+    if (!receiptToPrint) return;
 
     function closePrint() {
-      setPrintJob(null);
+      setReceiptToPrint(null);
     }
 
     window.addEventListener('afterprint', closePrint);
     window.print();
     return () => window.removeEventListener('afterprint', closePrint);
-  }, [printJob]);
+  }, [receiptToPrint]);
 
   function refresh() {
     setRetry((count) => count + 1);
@@ -82,7 +82,7 @@ export function BillingDetail({ visitId, token, onUnauthorized }) {
   }
 
   function printReceipt(payment) {
-    setPrintJob({ type: 'receipt', visit: detail.visit, payment });
+    setReceiptToPrint({ visit: detail.visit, payment });
   }
 
   const visit = detail?.visit;
@@ -112,7 +112,7 @@ export function BillingDetail({ visitId, token, onUnauthorized }) {
                 </Button>
               )}
               {invoice && (
-                <Button variant="outlined" onClick={() => setPrintJob({ type: 'invoice', visit, billing: detail.billing })}>
+                <Button variant="outlined" href={'#/billing/' + visitId + '/invoice'}>
                   Cetak invoice
                 </Button>
               )}
@@ -147,7 +147,7 @@ export function BillingDetail({ visitId, token, onUnauthorized }) {
           <PaymentHistory visitId={visitId} token={token} paymentCount={paymentCount} onPrint={printReceipt} onUnauthorized={onUnauthorized} />
         </>
       )}
-      {printJob && <BillingPrint job={printJob} />}
+      {receiptToPrint && <ReceiptPrint visit={receiptToPrint.visit} payment={receiptToPrint.payment} />}
     </div>
   );
 }

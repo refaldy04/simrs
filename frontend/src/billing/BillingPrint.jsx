@@ -4,53 +4,80 @@ import { billingStatuses } from './BillingComponents.jsx';
 import { paymentMethods } from './PaymentForm.jsx';
 import './print.css';
 
-function PrintDetails({ fields }) {
+function PrintDetails({ fields, className }) {
   return (
-    <dl>
+    <dl className={className}>
       {fields.map(([name, value]) => (
-        <div key={name}><dt>{name}</dt><dd>{value}</dd></div>
+        <div key={name}>
+          <dt>{name}</dt>
+          <dd>{value}</dd>
+        </div>
       ))}
     </dl>
   );
 }
 
-function InvoicePrint({ visit, billing }) {
+export function InvoiceDocument({ visit, billing }) {
   const { invoice, items } = billing;
 
   return (
-    <>
-      <h2>Invoice rawat jalan</h2>
-      <PrintDetails fields={[
-        ['No. invoice', invoice.invoice_no],
-        ['Tanggal terbit', formatDateTime(invoice.issued_at)],
-        ['Pasien', visit.patient_name],
-        ['No. rekam medis', visit.medical_record_no],
-        ['Kunjungan', formatDate(visit.visit_date) + ' · ' + visit.clinic_name],
-        ['Status', billingStatuses[invoice.status].label],
-      ]} />
-      <table aria-label="Rincian invoice">
-        <thead><tr><th>Rincian biaya</th><th>Jumlah</th><th>Tarif satuan</th><th>Subtotal</th></tr></thead>
-        <tbody>
-          {items.map((item, index) => (
-            <tr key={index}>
-              <td>{item.description}</td><td>{item.quantity}</td>
-              <td>{formatCurrency(item.unit_price)}</td><td>{formatCurrency(item.subtotal)}</td>
+    <article aria-labelledby="invoice-title" className="invoice-document min-w-0 rounded-lg border border-slate-300 bg-white p-4 sm:p-8">
+      <header className="flex flex-wrap items-end justify-between gap-3 border-b border-slate-300 pb-4">
+        <div>
+          <p className="text-sm">SIMRS Rawat Jalan</p>
+          <h1 id="invoice-title" className="text-2xl font-bold">Invoice rawat jalan</h1>
+        </div>
+        <PrintDetails className="invoice-number" fields={[['No. invoice', invoice.invoice_no]]} />
+      </header>
+      <PrintDetails
+        className="invoice-metadata grid gap-x-6 gap-y-3 py-4 sm:grid-cols-2"
+        fields={[
+          ['Pasien', visit.patient_name],
+          ['No. rekam medis', visit.medical_record_no],
+          ['Poli', visit.clinic_name],
+          ['Tanggal kunjungan', formatDate(visit.visit_date)],
+          ['Tanggal terbit', formatDateTime(invoice.issued_at)],
+          ['Status pembayaran', billingStatuses[invoice.status].label],
+        ]}
+      />
+      <div className="invoice-table" tabIndex={0}>
+        <table aria-label="Rincian invoice">
+          <thead>
+            <tr>
+              <th scope="col">Rincian biaya</th>
+              <th scope="col">Jumlah</th>
+              <th scope="col">Tarif satuan</th>
+              <th scope="col">Subtotal</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
-      <PrintDetails fields={[
-        ['Total tagihan', formatCurrency(invoice.total_amount)],
-        ['Sudah dibayar', formatCurrency(invoice.paid_amount)],
-        ['Sisa tagihan', formatCurrency(invoice.balance_amount)],
-      ]} />
-    </>
+          </thead>
+          <tbody>
+            {items.map((item, index) => (
+              <tr key={index}>
+                <td>{item.description}</td>
+                <td>{item.quantity}</td>
+                <td>{formatCurrency(item.unit_price)}</td>
+                <td>{formatCurrency(item.subtotal)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <PrintDetails
+        className="invoice-summary ml-auto mt-4"
+        fields={[
+          ['Total tagihan', formatCurrency(invoice.total_amount)],
+          ['Sudah dibayar', formatCurrency(invoice.paid_amount)],
+          ['Sisa tagihan', formatCurrency(invoice.balance_amount)],
+        ]}
+      />
+    </article>
   );
 }
 
-function ReceiptPrint({ visit, payment }) {
-  return (
-    <>
+export function ReceiptPrint({ visit, payment }) {
+  return createPortal(
+    <article id="billing-print">
+      <h1>SIMRS Rawat Jalan</h1>
       <h2>Bukti pembayaran</h2>
       <PrintDetails fields={[
         ['No. bukti bayar', payment.receipt_no],
@@ -63,17 +90,6 @@ function ReceiptPrint({ visit, payment }) {
         ['Kasir', payment.cashier_name],
         ['Nominal dibayar', formatCurrency(payment.amount)],
       ]} />
-    </>
-  );
-}
-
-export function BillingPrint({ job }) {
-  return createPortal(
-    <article id="billing-print">
-      <h1>SIMRS Rawat Jalan</h1>
-      {job.type === 'invoice'
-        ? <InvoicePrint visit={job.visit} billing={job.billing} />
-        : <ReceiptPrint visit={job.visit} payment={job.payment} />}
     </article>,
     document.body,
   );

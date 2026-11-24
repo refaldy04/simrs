@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { readStoredToken, storeToken } from './auth.js';
 import { BillingDetail } from './billing/BillingDetail.jsx';
 import { BillingQueue } from './billing/BillingQueue.jsx';
+import { InvoicePage } from './billing/InvoicePage.jsx';
 import { LoadStatus } from './components/LoadStatus.jsx';
 import { ExaminationPage } from './examination/ExaminationPage.jsx';
 import { LoginForm } from './LoginForm.jsx';
@@ -118,8 +119,13 @@ export function App() {
   const examinationRoute = canExamine ? /^#\/examinations\/([1-9]\d{0,18})$/.exec(locationHash) : null;
   const onQueue = Boolean(registrationRoute || examinationRoute);
   const onPharmacy = canDispense && locationHash === '#/pharmacy';
-  const billingRoute = canBill ? /^#\/billing(?:\/([1-9]\d{0,18}))?$/.exec(locationHash) : null;
+  const billingRoute = canBill ? /^#\/billing(?:\/([1-9]\d{0,18})(\/invoice)?)?$/.exec(locationHash) : null;
   const onOverview = !masterRoute && !onQueue && !onPharmacy && !billingRoute;
+
+  if (billingRoute?.[2] === '/invoice') {
+    const visitId = billingRoute[1];
+    return <InvoicePage key={visitId} visitId={visitId} token={session.token} onUnauthorized={expireSession} />;
+  }
 
   let content = <WorkspaceOverview permissions={permissions} />;
   if (masterRoute) {
