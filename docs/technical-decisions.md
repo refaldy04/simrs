@@ -69,6 +69,14 @@ Pembayaran mengunci kunjungan lalu invoice sebelum membaca saldo terbaru. Postgr
 
 Kunci UUID disimpan di `payments` dengan constraint unik global. Pengiriman ulang membandingkan invoice, nominal, metode, dan referensi sebelum mengembalikan transaksi asli. React menyimpan permintaan yang belum terkonfirmasi di `sessionStorage`, sehingga pengguna dapat memuat ulang halaman dan mengirim ulang kunci yang sama. [Uji integrasi billing](../tests/billing.integration.mjs)
 
+## Permintaan dan hasil laboratorium
+
+Yii2 membuat pesanan dan item lab dengan tarif satuan dari master aktif. Pesanan, audit, dan event outbox tersimpan bersama. `integration_outbox.event_key` menjadi kunci pengiriman ulang. Yii2 mengembalikan pesanan semula jika kunjungan, jenis pemeriksaan, dan catatan klinis sama.
+
+Node.js mengambil event berdasarkan `next_attempt_at` dengan `FOR UPDATE SKIP LOCKED`. Dalam satu pernyataan SQL, worker menetapkan `published_at` dan menambah `attempt_count` pada event yang diproses. Antrean menampilkan event yang sudah diterbitkan dan data lama yang sudah tersedia. Bila basis data atau Node.js terputus, event yang belum terbit tetap tersimpan dan worker mencobanya kembali saat layanan tersedia.
+
+Penyimpanan hasil mengunci kunjungan dan invoice yang sudah terbit, memvalidasi bahwa setiap item mendapat satu hasil, lalu menyimpan seluruh hasil sekaligus. Lab yang selesai menambah komponen invoice berdasarkan harga pada order. Pembayaran yang sudah tercatat tetap diperhitungkan. Jika biaya lab menghasilkan saldo baru, status kunjungan kembali menunggu pembayaran. Pengiriman ulang hasil yang sama mengembalikan transaksi asli. [Uji integrasi laboratorium](../tests/laboratory.integration.mjs)
+
 ## Rancangan transaksi aplikasi
 
 | Skenario | Aturan basis data dan alur transaksi |
@@ -77,7 +85,7 @@ Kunci UUID disimpan di `payments` dengan constraint unik global. Pengiriman ulan
 | Konkurensi stok | Stok obat harus bernilai nol atau lebih. Penyerahan memakai `UPDATE` bersyarat dengan `stock_quantity >= quantity` dan mencatat mutasi dalam transaksi yang sama dengan perubahan status resep. Setiap item resep hanya dapat memiliki satu mutasi penyerahan. |
 | Pembayaran bertahap | `invoice_balances` menghitung total, pembayaran tercatat, saldo, dan status dari transaksi. Pembayaran mengunci baris tagihan sebelum membaca saldo. Percobaan ulang menggunakan `idempotency_key` yang sama, dan setiap pembayaran mempunyai nomor bukti unik. |
 | Perubahan pemeriksaan | Perubahan diagnosis atau tindakan dicatat di `audit_logs` dengan aktor, alasan, dan data sebelum serta sesudah perubahan. Saat perubahan memengaruhi biaya, aplikasi mengunci tagihan yang sama dengan transaksi pembayaran dan memperbarui rincian serta audit dalam satu transaksi. Jumlah yang sudah dibayar menjadi batas minimum total tagihan pada revisi biasa. |
-| Gangguan integrasi | Pembuatan pesanan lab mencatat `integration_outbox` dalam transaksi yang sama. Pengiriman ulang menggunakan `event_key` yang sama dan jadwal `next_attempt_at`. |
+| Gangguan integrasi | Pembuatan pesanan lab mencatat `integration_outbox` dalam transaksi yang sama. Worker Node.js mengambil event sesuai `next_attempt_at`. Kunci `event_key` yang sama menjaga permintaan tetap tunggal ketika dikirim ulang. |
 | Kueri operasional | Indeks mengikuti pencarian riwayat pasien, kunjungan per tanggal dan poli, antrean resep dan lab, periode pembayaran, serta event integrasi yang menunggu. |
 
 Migrasi Yii2 memakai `safeUp()` dan `safeDown()` untuk menjalankan setiap perubahan skema dalam satu transaksi. [Panduan migrasi Yii2](https://www.yiiframework.com/doc/guide/2.0/en/db-migrations#transactional-migrations) · [Constraint PostgreSQL](https://www.postgresql.org/docs/17/ddl-constraints.html)

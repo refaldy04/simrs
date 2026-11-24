@@ -6,7 +6,7 @@ class ApiError extends Error {
   }
 }
 
-export async function coreRequest(path, { method = 'GET', token, body, signal } = {}) {
+async function apiRequest(path, { method = 'GET', token, body, signal } = {}) {
   const headers = new Headers({ Accept: 'application/json' });
   if (token) headers.set('Authorization', `Bearer ${token}`);
   if (body !== undefined) headers.set('Content-Type', 'application/json');
@@ -14,7 +14,7 @@ export async function coreRequest(path, { method = 'GET', token, body, signal } 
   const timeout = AbortSignal.timeout(10000);
   let response;
   try {
-    response = await fetch(`/api/core/${path}`, {
+    response = await fetch(path, {
       method,
       headers,
       body: body === undefined ? undefined : JSON.stringify(body),
@@ -35,4 +35,12 @@ export async function coreRequest(path, { method = 'GET', token, body, signal } 
   }
 
   return data;
+}
+
+export function coreRequest(path, options) {
+  return apiRequest('/api/core/' + path, options);
+}
+
+export function servicesRequest(path, options) {
+  return apiRequest('/api/services/' + path, options);
 }

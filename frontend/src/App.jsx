@@ -6,6 +6,8 @@ import { BillingQueue } from './billing/BillingQueue.jsx';
 import { InvoicePage } from './billing/InvoicePage.jsx';
 import { LoadStatus } from './components/LoadStatus.jsx';
 import { ExaminationPage } from './examination/ExaminationPage.jsx';
+import { LabOrderPage } from './laboratory/LabOrderPage.jsx';
+import { LabQueue } from './laboratory/LabQueue.jsx';
 import { LoginForm } from './LoginForm.jsx';
 import { MasterDataPage } from './master/MasterDataPage.jsx';
 import { PharmacyPage } from './pharmacy/PharmacyPage.jsx';
@@ -112,6 +114,10 @@ export function App() {
   const canPrescribe = permissions.includes('prescriptions.create');
   const canDispense = permissions.includes('prescriptions.dispense');
   const canBill = permissions.includes('billing.manage');
+  const canRequestLab = permissions.includes('lab.request');
+  const canReadLab = permissions.includes('lab.results.read');
+  const canWorkLab = permissions.includes('lab.requests.read');
+  const canWriteLab = permissions.includes('lab.results.write');
   const masterRoute = canOpenMaster ? /^#\/master-data(?:\/([a-z-]+))?$/.exec(locationHash) : null;
   const registrationRoute = canReadQueue
     ? /^#\/registration(?:\/(schedules|queue))?(?:\?date=(\d{4}-\d{2}-\d{2}))?$/.exec(locationHash)
@@ -119,8 +125,9 @@ export function App() {
   const examinationRoute = canExamine ? /^#\/examinations\/([1-9]\d{0,18})$/.exec(locationHash) : null;
   const onQueue = Boolean(registrationRoute || examinationRoute);
   const onPharmacy = canDispense && locationHash === '#/pharmacy';
+  const labRoute = canWorkLab ? /^#\/laboratory(?:\/([1-9]\d{0,18}))?$/.exec(locationHash) : null;
   const billingRoute = canBill ? /^#\/billing(?:\/([1-9]\d{0,18})(\/invoice)?)?$/.exec(locationHash) : null;
-  const onOverview = !masterRoute && !onQueue && !onPharmacy && !billingRoute;
+  const onOverview = !masterRoute && !onQueue && !onPharmacy && !billingRoute && !labRoute;
 
   if (billingRoute?.[2] === '/invoice') {
     const visitId = billingRoute[1];
@@ -150,11 +157,18 @@ export function App() {
         token={session.token}
         canManageProcedures={canManageProcedures}
         canPrescribe={canPrescribe}
+        canReadLab={canReadLab}
+        canRequestLab={canRequestLab}
         onUnauthorized={expireSession}
       />
     );
   } else if (onPharmacy) {
     content = <PharmacyPage token={session.token} onUnauthorized={expireSession} />;
+  } else if (labRoute) {
+    const orderId = labRoute[1];
+    content = orderId
+      ? <LabOrderPage key={orderId} orderId={orderId} token={session.token} canWriteResults={canWriteLab} onUnauthorized={expireSession} />
+      : <LabQueue token={session.token} onUnauthorized={expireSession} />;
   } else if (billingRoute) {
     const visitId = billingRoute[1];
     content = visitId
@@ -180,7 +194,7 @@ export function App() {
       </header>
       <main className="mx-auto grid max-w-7xl gap-4 px-4 py-5 sm:px-6 sm:py-7">
         {notice && <Alert severity="error">{notice}</Alert>}
-        {(canOpenMaster || canReadQueue || canDispense || canBill) && (
+        {(canOpenMaster || canReadQueue || canDispense || canBill || canWorkLab) && (
           <nav aria-label="Navigasi utama" className="flex flex-wrap gap-2">
             <Button href="#/" variant={onOverview ? 'contained' : 'text'} aria-current={onOverview ? 'page' : undefined}>
               Ringkasan
@@ -202,6 +216,11 @@ export function App() {
             {canDispense && (
               <Button href="#/pharmacy" variant={onPharmacy ? 'contained' : 'text'} aria-current={onPharmacy ? 'page' : undefined}>
                 Farmasi
+              </Button>
+            )}
+            {canWorkLab && (
+              <Button href="#/laboratory" variant={labRoute ? 'contained' : 'text'} aria-current={labRoute ? 'page' : undefined}>
+                Laboratorium
               </Button>
             )}
             {canBill && (

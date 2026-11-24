@@ -123,6 +123,18 @@ final class VisitCharges
             SQL, [':invoice_id' => $invoice['id'], ':prescription_id' => $prescriptionId])->execute();
     }
 
+    public function syncLabOrder(array $invoice, string $orderId): void
+    {
+        $this->db->createCommand(<<<'SQL'
+            INSERT INTO invoice_items (invoice_id, visit_id, item_type, description, unit_price, lab_order_item_id)
+            SELECT :invoice_id, item.visit_id, 'lab', test.name, item.unit_price, item.id
+            FROM lab_order_items AS item
+            JOIN lab_tests AS test ON test.id = item.lab_test_id
+            WHERE item.lab_order_id = :order_id
+            ON CONFLICT (lab_order_item_id) DO NOTHING
+            SQL, [':invoice_id' => $invoice['id'], ':order_id' => $orderId])->execute();
+    }
+
     public function syncVisitPaymentStatus(array $visit, array $invoice): array
     {
         if (!in_array($visit['status'], ['awaiting_billing', 'completed'], true)) {

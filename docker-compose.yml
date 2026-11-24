@@ -43,8 +43,16 @@ services:
     build: ./services
     environment:
       CORE_API_TARGET: http://backend:8080
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_NAME: ${POSTGRES_DB:-simrs}
+      DB_USER: ${POSTGRES_USER:-simrs}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?Salin .env.example ke .env dan isi POSTGRES_PASSWORD}
     ports:
       - "127.0.0.1:${SERVICES_PORT:-3000}:3000"
+    depends_on:
+      db:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/health').then(response => process.exit(response.ok ? 0 : 1))"]
       interval: 5s

@@ -37,7 +37,7 @@ docker compose ps
 | API Node.js | `http://127.0.0.1:3000/health` |
 | PostgreSQL | `127.0.0.1:5432` |
 
-Setelah masuk, React menampilkan hak akses akun dan status kedua API. Status Yii2 mencakup koneksi ke PostgreSQL. [Dokumentasi API](docs/api.md)
+Setelah masuk, React menampilkan hak akses akun dan status kedua API. Yii2 dan Node.js memeriksa koneksi PostgreSQL dengan konfigurasi dari `.env` yang diteruskan oleh Docker Compose. [Dokumentasi API](docs/api.md)
 
 ### Menerapkan perubahan kode di Docker
 
@@ -164,4 +164,20 @@ Uji integrasi billing membuat tagihan dan pembayaran fiktif di stack pengujian y
 
 ```sh
 SIMRS_TEST_API_URL=http://127.0.0.1:17808 node --test tests/billing.integration.mjs
+```
+
+### Laboratorium
+
+Masuk sebagai `demo.dokter.dalam`, buka pemeriksaan `DEMO-RM-004` dari antrean **23 November 2026**, lalu pilih tab **Laboratorium**. Pilih pemeriksaan dari master, isi catatan klinis bila perlu, dan klik **Kirim permintaan**. Tab yang sama menampilkan permintaan kunjungan dan **Riwayat hasil lab pasien**. [Buka antrean dokter](http://127.0.0.1:5173/#/registration/queue?date=2026-11-23)
+
+Masuk sebagai `demo.lab`, buka **Laboratorium**, lalu cari `DEMO-RM-004`. Seed menyediakan satu permintaan aktif untuk pasien ini. Klik **Buka permintaan**, isi hasil setiap pemeriksaan beserta informasi opsional, lalu klik **Simpan hasil**. Setelah selesai, order tampil pada filter **Selesai** dan hasil dapat dibaca kembali oleh dokter. [Buka Laboratorium](http://127.0.0.1:5173/#/laboratory)
+
+Biaya lab masuk setelah hasil disimpan. Jika invoice sudah terbit, sistem memperbarui rincian tagihan dan menghitung saldo dari pembayaran yang sudah tercatat. Permintaan dokter tetap tersimpan saat Node.js tidak tersedia, lalu masuk antrean setelah layanan pulih. [Dokumentasi API](docs/api.md#laboratorium) · [Alur integrasi](docs/architecture.md#laboratorium)
+
+Tangkapan layar memakai data fiktif dari pengujian. [Pencatatan hasil](docs/screenshots/laboratorium.png) · [Riwayat hasil dokter](docs/screenshots/hasil-lab.png)
+
+Jalankan uji integrasi pada stack terpisah yang sudah dimigrasi dan di-seed. Uji membuat pasien, kunjungan, pemeriksaan lab, dan tagihan fiktif.
+
+```sh
+SIMRS_TEST_API_URL=http://127.0.0.1:17808 SIMRS_TEST_SERVICES_URL=http://127.0.0.1:17300 node --test tests/laboratory.integration.mjs
 ```

@@ -84,6 +84,22 @@
     {
       "key": "billingPaidAmount",
       "value": ""
+    },
+    {
+      "key": "labDemoOrderId",
+      "value": ""
+    },
+    {
+      "key": "labDemoVisitId",
+      "value": ""
+    },
+    {
+      "key": "labCompletedAt",
+      "value": ""
+    },
+    {
+      "key": "labReplayBody",
+      "value": ""
     }
   ],
   "item": [
@@ -2111,6 +2127,308 @@
                   "    pm.response.to.have.status(204);",
                   "});",
                   "pm.collectionVariables.unset(\"accessToken\");"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Laboratorium",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{accessToken}}",
+            "type": "string"
+          }
+        ]
+      },
+      "item": [
+        {
+          "name": "Login petugas laboratorium",
+          "request": {
+            "method": "POST",
+            "url": "{{backendUrl}}/auth/login",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"demo.lab\",\n  \"password\": \"{{demoPassword}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.collectionVariables.unset(\"accessToken\");",
+                  "if (pm.response.code === 200) pm.collectionVariables.set(\"accessToken\", pm.response.json().access_token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cari pemeriksaan lab demo yang selesai",
+          "request": {
+            "method": "GET",
+            "url": "{{servicesUrl}}/lab/orders?status=completed&q=DEMO-RM-001"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const seededOrder = pm.response.json().items.find(function (entry) { return entry.medical_record_no === \"DEMO-RM-001\"; });",
+                  "pm.test(\"Daftar Node.js memuat permintaan lab pasien demo\", function () {",
+                  "    pm.expect(seededOrder.status).to.equal(\"completed\");",
+                  "});",
+                  "if (seededOrder) {",
+                  "    pm.collectionVariables.set(\"labDemoOrderId\", seededOrder.id);",
+                  "    pm.collectionVariables.set(\"labDemoVisitId\", seededOrder.visit_id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Baca hasil laboratorium melalui Node.js",
+          "request": {
+            "method": "GET",
+            "url": "{{servicesUrl}}/lab/orders/{{labDemoOrderId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const labOrder = pm.response.json();",
+                  "pm.test(\"Detail berisi pemeriksaan dan hasil fiktif\", function () {",
+                  "    pm.expect(labOrder.items[0].result.result_value).to.equal(\"Hasil pemeriksaan fiktif\");",
+                  "    pm.expect(labOrder.items[0].result.entered_by_name).to.be.a(\"string\");",
+                  "});",
+                  "const submitted = labOrder.items.map(function (entry) {",
+                  "    const result = entry.result;",
+                  "    return { lab_order_item_id: entry.id, result_value: result.result_value, unit: result.unit, reference_range: result.reference_range, notes: result.notes };",
+                  "});",
+                  "pm.collectionVariables.set(\"labReplayBody\", JSON.stringify({ items: submitted }));",
+                  "pm.collectionVariables.set(\"labCompletedAt\", labOrder.completed_at);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ulangi hasil yang sudah tercatat",
+          "request": {
+            "method": "PUT",
+            "url": "{{servicesUrl}}/lab/orders/{{labDemoOrderId}}/results",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{{labReplayBody}}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Pengulangan mengembalikan hasil dan waktu selesai semula\", function () {",
+                  "    const replay = pm.response.json();",
+                  "    pm.expect(replay.replayed).to.equal(true);",
+                  "    pm.expect(replay.order.completed_at).to.equal(pm.collectionVariables.get(\"labCompletedAt\"));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Tolak hasil kosong",
+          "request": {
+            "method": "PUT",
+            "url": "{{servicesUrl}}/lab/orders/{{labDemoOrderId}}/results",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"items\":[]}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 422\", function () {",
+                  "    pm.response.to.have.status(422);",
+                  "});",
+                  "pm.test(\"Respons memuat kesalahan pada items\", function () {",
+                  "    pm.expect(pm.response.json().errors.items).to.be.a(\"string\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Logout petugas laboratorium",
+          "request": {
+            "method": "POST",
+            "url": "{{backendUrl}}/auth/logout"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 204\", function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});",
+                  "pm.collectionVariables.unset(\"accessToken\");"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login dokter untuk riwayat hasil lab",
+          "request": {
+            "method": "POST",
+            "url": "{{backendUrl}}/auth/login",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"demo.dokter.umum\",\n  \"password\": \"{{demoPassword}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.collectionVariables.unset(\"accessToken\");",
+                  "if (pm.response.code === 200) pm.collectionVariables.set(\"accessToken\", pm.response.json().access_token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Baca riwayat hasil lab pasien",
+          "request": {
+            "method": "GET",
+            "url": "{{backendUrl}}/lab/visits/{{labDemoVisitId}}/history"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Riwayat dokter menampilkan hasil yang sama\", function () {",
+                  "    const historyOrder = pm.response.json().items.find(function (entry) { return entry.id === pm.collectionVariables.get(\"labDemoOrderId\"); });",
+                  "    pm.expect(historyOrder.items[0].result.result_value).to.equal(\"Hasil pemeriksaan fiktif\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Tolak antrean petugas lab untuk dokter",
+          "request": {
+            "method": "GET",
+            "url": "{{servicesUrl}}/lab/orders"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 403\", function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Logout dokter lab",
+          "request": {
+            "method": "POST",
+            "url": "{{backendUrl}}/auth/logout"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 204\", function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});",
+                  "pm.collectionVariables.unset(\"accessToken\");",
+                  "pm.collectionVariables.unset(\"labDemoOrderId\");",
+                  "pm.collectionVariables.unset(\"labDemoVisitId\");",
+                  "pm.collectionVariables.unset(\"labCompletedAt\");",
+                  "pm.collectionVariables.unset(\"labReplayBody\");"
                 ]
               }
             }

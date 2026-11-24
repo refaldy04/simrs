@@ -1,7 +1,8 @@
 import { Alert, Button, Paper, Tab, Tabs, Typography } from '@mui/material';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { LoadStatus } from '../components/LoadStatus.jsx';
 import { formatDate } from '../format.js';
+import { LabVisitPanel } from '../laboratory/LabVisitPanel.jsx';
 import { PrescriptionPanel } from '../prescription/PrescriptionPanel.jsx';
 import { VisitProcedures } from '../procedure/VisitProcedures.jsx';
 import { VisitStatus } from '../registration/VisitTable.jsx';
@@ -9,7 +10,9 @@ import { getExamination } from '../service/examinationService.js';
 import { ExaminationForm } from './ExaminationForm.jsx';
 import { MedicalRecordHistory } from './MedicalRecordHistory.jsx';
 
-export function ExaminationPage({ visitId, token, canManageProcedures, canPrescribe, onUnauthorized }) {
+export function ExaminationPage({
+  visitId, token, canManageProcedures, canPrescribe, canReadLab, canRequestLab, onUnauthorized,
+}) {
   const [tab, setTab] = useState('examination');
   const [context, setContext] = useState(null);
   const [loadError, setLoadError] = useState('');
@@ -49,15 +52,15 @@ export function ExaminationPage({ visitId, token, canManageProcedures, canPrescr
     setSavedCount((count) => count + 1);
   }
 
-  function visitStatusChanged(status) {
+  const visitStatusChanged = useCallback((status) => {
     setContext((current) => {
       if (!current || current.visit.status === status) return current;
       return { ...current, visit: { ...current.visit, status } };
     });
-  }
+  }, []);
 
   const visit = context?.visit;
-  const hasTabs = canManageProcedures || canPrescribe;
+  const hasTabs = canManageProcedures || canPrescribe || canReadLab;
   const queueLink = '#/registration/queue' + (visit ? '?date=' + visit.visit_date : '');
 
   return (
@@ -91,6 +94,7 @@ export function ExaminationPage({ visitId, token, canManageProcedures, canPrescr
               <Tab id="examination-tab" aria-controls="examination-panel" label="Pemeriksaan & RME" value="examination" />
               {canManageProcedures && <Tab id="procedures-tab" aria-controls="procedures-panel" label="Tindakan & tagihan" value="procedures" />}
               {canPrescribe && <Tab id="prescription-tab" aria-controls="prescription-panel" label="Resep" value="prescription" />}
+              {canReadLab && <Tab id="lab-tab" aria-controls="lab-panel" label="Laboratorium" value="laboratory" />}
             </Tabs>
           )}
           <div role="tabpanel" id="examination-panel" aria-labelledby={hasTabs ? 'examination-tab' : undefined} hidden={tab !== 'examination'}>
@@ -128,6 +132,19 @@ export function ExaminationPage({ visitId, token, canManageProcedures, canPrescr
                 active={tab === 'prescription'}
                 onUnauthorized={onUnauthorized}
               />
+            </div>
+          )}
+          {canReadLab && (
+            <div role="tabpanel" id="lab-panel" aria-labelledby="lab-tab" hidden={tab !== 'laboratory'}>
+              {tab === 'laboratory' && (
+                <LabVisitPanel
+                  visitId={visitId}
+                  token={token}
+                  canRequest={canRequestLab}
+                  onStatusChange={visitStatusChanged}
+                  onUnauthorized={onUnauthorized}
+                />
+              )}
             </div>
           )}
         </>

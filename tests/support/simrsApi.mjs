@@ -1,15 +1,15 @@
 import assert from 'node:assert/strict';
 
-const base = process.env.SIMRS_TEST_API_URL?.replace(/\/$/, '');
+const base = process.env.SIMRS_TEST_API_URL;
 const demoPassword = process.env.SIMRS_TEST_PASSWORD ?? 'SimrsDemo2026!';
 export const demoDate = '2026-11-23';
 
-export async function request(path, { token, method = 'GET', body } = {}) {
-  assert.ok(base, 'Arahkan SIMRS_TEST_API_URL ke stack pengujian yang sudah di-seed.');
+export async function request(path, { token, method = 'GET', body, baseUrl = base } = {}) {
+  assert.ok(baseUrl, 'Arahkan API ke stack pengujian yang sudah di-seed.');
   const headers = { Accept: 'application/json' };
   if (token) headers.Authorization = 'Bearer ' + token;
   if (body !== undefined) headers['Content-Type'] = 'application/json';
-  const response = await fetch(base + path, {
+  const response = await fetch(baseUrl.replace(/\/$/, '') + path, {
     method, headers, body: body === undefined ? undefined : JSON.stringify(body),
     signal: AbortSignal.timeout(12000),
   });

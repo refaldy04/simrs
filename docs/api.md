@@ -5,9 +5,9 @@
 | Metode | URL lokal bawaan | Respons saat siap |
 | --- | --- | --- |
 | `GET` | `http://127.0.0.1:8080/health` | `200` dengan `{"status":"ok","database":"ok"}` |
-| `GET` | `http://127.0.0.1:3000/health` | `200` dengan `{"status":"ok"}` |
+| `GET` | `http://127.0.0.1:3000/health` | `200` dengan `{"status":"ok","database":"ok"}` |
 
-Yii2 menjalankan `SELECT 1` pada PostgreSQL. Jika kueri gagal, endpoint mengembalikan `503` dengan `{"status":"unavailable","database":"unavailable"}`.
+Yii2 dan Node.js menjalankan `SELECT 1` pada PostgreSQL. Jika kueri gagal, endpoint mengembalikan `503` dengan `{"status":"unavailable","database":"unavailable"}`.
 
 Frontend menggunakan `/api/core/health` dan `/api/services/health` melalui proxy Vite. Untuk menguji API secara langsung, gunakan permintaan pemeriksaan kesehatan pada koleksi Postman. [Koleksi SIMRS](../postman/SIMRS.postman_collection.json)
 
@@ -214,3 +214,48 @@ Pembayaran menerima nominal positif sebagai string desimal dengan maksimal dua a
 Untuk pengiriman ulang, pakai UUID dan isian yang sama. Respons mengembalikan bukti bayar asli dan saldo terbaru, termasuk jika invoice kini lunas. UUID yang sama dengan invoice atau isian berbeda menghasilkan `409`. Nominal di atas saldo terbaru juga menghasilkan `409`. Isian yang salah menghasilkan `422` dengan `errors` per field, dan peran yang tidak berwenang menghasilkan `403`.
 
 Folder **Billing dan Pembayaran** menguji rincian, riwayat, dan pengiriman ulang pembayaran demo. [Koleksi SIMRS](../postman/SIMRS.postman_collection.json)
+
+## Laboratorium
+
+Kirim token Bearer dari Yii2. Dokter membuka konteks dari kunjungan yang ditugaskan. Riwayat mengambil hasil laboratorium yang selesai dari kunjungan pasien yang sama. Antrean Node.js meminta izin petugas laboratorium ke Yii2.
+
+| API | Metode dan path | Izin dan respons |
+| --- | --- | --- |
+| Yii2 | `GET /lab/visits/{visitId}` | `lab.results.read` · `200` dengan `visit_status`, `can_order`, `tests`, dan `orders`. |
+| Yii2 | `POST /lab/visits/{visitId}/orders` | `lab.request` · `201` dengan `order` dan `replayed: false`. Pengiriman ulang dengan kunci dan isian yang sama menghasilkan `200`. |
+| Yii2 | `GET /lab/visits/{visitId}/history` | `lab.results.read` · `200` dengan riwayat hasil pasien dan metadata halaman. |
+| Node.js | `GET /lab/orders` | `lab.requests.read` · `200` dengan daftar permintaan dan metadata halaman. |
+| Node.js | `GET /lab/orders/{orderId}` | `lab.requests.read` · `200` dengan rincian permintaan, pemeriksaan, dan hasil yang tersimpan. |
+| Node.js | `PUT /lab/orders/{orderId}/results` | `lab.results.write` · `200` dengan `order` berstatus `completed` dan `replayed`. |
+
+Antrean menerima `q` untuk nama atau nomor rekam medis, `status`, `page`, dan `page_size`. Status bawaan `open` mencakup `requested` dan `in_progress`. Filter juga menerima `requested`, `in_progress`, `completed`, `cancelled`, atau `all`. Riwayat menerima `page` dan `page_size`.
+
+Dokter dapat membuat permintaan saat kunjungan sedang diperiksa atau menunggu pembayaran. Gunakan ID pemeriksaan aktif dari `tests`. Yii2 menyimpan tarif saat permintaan dibuat.
+
+```json
+{
+  "idempotency_key": "638fe419-74bb-4977-92c4-10cbd48a2304",
+  "lab_test_ids": ["1", "2"],
+  "clinical_notes": "Catatan klinis fiktif"
+}
+```
+
+Ambil ID item dari detail permintaan Node.js. Kirim tepat satu hasil per item. `unit`, `reference_range`, dan `notes` bersifat opsional. Payload berikut menggunakan satu item dengan hasil simulasi.
+
+```json
+{
+  "items": [
+    {
+      "lab_order_item_id": "7",
+      "result_value": "Hasil pemeriksaan fiktif",
+      "unit": "unit simulasi",
+      "reference_range": "Rujukan fiktif",
+      "notes": "Catatan fiktif"
+    }
+  ]
+}
+```
+
+Node.js memeriksa tipe dan ukuran body JSON, lalu meneruskan detail dan penyimpanan hasil ke endpoint Yii2 dengan path yang sama. Yii2 memvalidasi isian dan menyimpan hasil, audit, dan penyesuaian tagihan dalam satu transaksi. Jika hasil yang sama sudah tersimpan, respons memuat `replayed: true`. Penggunaan ulang kunci permintaan dengan isian berbeda atau perubahan hasil final menghasilkan `409`. Isian hasil yang tidak valid atau belum lengkap menghasilkan `422` dengan `errors`. Node.js menghasilkan `503` saat layanan yang dibutuhkan tidak tersedia.
+
+Folder **Laboratorium** menguji antrean Node.js, detail dan pengiriman ulang hasil demo, serta riwayat dokter di Yii2. [Koleksi SIMRS](../postman/SIMRS.postman_collection.json)
