@@ -45,6 +45,14 @@ Penyimpanan mengunci kunjungan dan mencocokkan `expected_updated_at` dengan vers
 
 Revisi pemeriksaan yang sudah selesai atau memiliki tagihan memerlukan alasan. Diagnosis dicatat sebagai data klinis, sehingga revisinya tidak mengubah komponen invoice maupun pembayaran. Riwayat mengurutkan catatan berdasarkan tanggal kunjungan dan waktu pemeriksaan serta memuat diagnosis dalam kueri halaman yang sama.
 
+## Tindakan dan komponen tagihan
+
+Tindakan kunjungan merujuk `medical_procedures` dan menyimpan salinan tarif satuan. Jumlah mewakili pengulangan tindakan yang sama. Penambahan memeriksa tindakan aktif yang sama di bawah kunci kunjungan. Koreksi memeriksa jumlah terakhir yang dibaca. Pembatalan mengisi `cancelled_at`, sehingga catatan tindakan tetap bisa ditelusuri.
+
+Sebelum tagihan terbit, estimasi dihitung dari biaya pendaftaran dan tindakan aktif. Setelah tagihan terbit, transaksi perubahan mengunci kunjungan lebih dulu lalu baris invoice, memperbarui komponen tindakan, dan menghitung saldo dari `invoice_balances`. Total di bawah pembayaran yang sudah diterima membatalkan seluruh perubahan. Jika revisi menghasilkan saldo baru, kunjungan yang sudah selesai kembali berstatus menunggu pembayaran. Kunjungan dengan tagihan yang sudah tercakup penuh berstatus selesai.
+
+Audit menyimpan pengguna, alasan, dan snapshot tindakan serta ringkasan tagihan sebelum dan sesudah perubahan. Operasi penerbitan tagihan dan pembayaran yang juga menulis status kunjungan mengikuti urutan kunci kunjungan lalu invoice. [Penguncian baris PostgreSQL](https://www.postgresql.org/docs/17/explicit-locking.html#LOCKING-ROWS)
+
 ## Rancangan transaksi aplikasi
 
 | Skenario | Aturan basis data dan alur transaksi |

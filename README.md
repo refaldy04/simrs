@@ -127,3 +127,11 @@ Masuk sebagai `demo.dokter.umum`, buka antrean **23 November 2026**, lalu pilih 
 **Simpan pemeriksaan** menyimpan catatan dengan status **Dalam pemeriksaan**. Setelah diagnosis utama diisi, **Selesaikan pemeriksaan** mengubah status menjadi **Menunggu pembayaran**. Panel **Riwayat rekam medis** menampilkan pemeriksaan tersimpan pasien. Untuk mengoreksi pemeriksaan yang sudah selesai, buka kembali dari antrean dan isi alasan perubahan. [Dokumentasi API](docs/api.md#pemeriksaan-diagnosis-dan-rme)
 
 Tangkapan layar memakai data fiktif dari pengujian. [Form pemeriksaan](docs/screenshots/pemeriksaan.png) · [Riwayat rekam medis](docs/screenshots/riwayat-rekam-medis.png)
+
+### Tindakan dan komponen tagihan
+
+Masuk sebagai `demo.dokter.dalam`, buka pemeriksaan `DEMO-RM-004` pada **23 November 2026**, lalu pilih tab **Tindakan & tagihan**. Pilih tindakan dari master, cek tarif satuan, isi jumlah, dan klik **Tambah tindakan**. Untuk tindakan yang sudah tercatat, gunakan **Ubah jumlah** atau **Batalkan**. [Buka antrean demo](http://127.0.0.1:5173/#/registration/queue?date=2026-11-23)
+
+Panel **Komponen tagihan** menampilkan estimasi pendaftaran dan tindakan aktif. Pada kunjungan dengan tagihan terbit, panel juga menampilkan rincian tagihan, jumlah dibayar, dan saldo. Gunakan akun `demo.dokter.umum` pada `DEMO-RM-002` untuk melihat contoh tagihan yang dibayar sebagian. [Dokumentasi API](docs/api.md#tindakan-dan-komponen-tagihan)
+
+Tangkapan layar memakai data fiktif dari pengujian. [Tindakan dan estimasi biaya](docs/screenshots/tindakan-komponen-tagihan.png) · [Rincian tagihan](docs/screenshots/tagihan-tindakan.png)

@@ -44,6 +44,22 @@
     {
       "key": "examinationBody",
       "value": ""
+    },
+    {
+      "key": "procedureEstimateVisitId",
+      "value": ""
+    },
+    {
+      "key": "procedureBilledVisitId",
+      "value": ""
+    },
+    {
+      "key": "procedureItemId",
+      "value": ""
+    },
+    {
+      "key": "procedureQuantity",
+      "value": ""
     }
   ],
   "item": [
@@ -1042,6 +1058,347 @@
                   "pm.collectionVariables.unset(\"accessToken\");",
                   "pm.collectionVariables.unset(\"examinationVisitId\");",
                   "pm.collectionVariables.unset(\"examinationBody\");"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Tindakan dan Tagihan",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{accessToken}}",
+            "type": "string"
+          }
+        ]
+      },
+      "item": [
+        {
+          "name": "Login dokter untuk tindakan",
+          "request": {
+            "method": "POST",
+            "url": "{{backendUrl}}/auth/login",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"demo.dokter.umum\",\n  \"password\": \"{{demoPassword}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.collectionVariables.unset(\"accessToken\");",
+                  "pm.collectionVariables.unset(\"procedureEstimateVisitId\");",
+                  "pm.collectionVariables.unset(\"procedureBilledVisitId\");",
+                  "pm.collectionVariables.unset(\"procedureItemId\");",
+                  "pm.collectionVariables.unset(\"procedureQuantity\");",
+                  "if (pm.response.code === 200) pm.collectionVariables.set(\"accessToken\", pm.response.json().access_token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cari kunjungan dan tagihan demo",
+          "request": {
+            "method": "GET",
+            "url": "{{backendUrl}}/registration/visits?date={{registrationDate}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const items = pm.response.json().items;",
+                  "const estimate = items.find(function (item) { return item.medical_record_no === \"DEMO-RM-005\"; });",
+                  "const billed = items.find(function (item) { return item.medical_record_no === \"DEMO-RM-002\"; });",
+                  "pm.test(\"Kedua kunjungan demo tersedia\", function () {",
+                  "    pm.expect(estimate).to.be.an(\"object\");",
+                  "    pm.expect(billed).to.be.an(\"object\");",
+                  "});",
+                  "if (estimate) pm.collectionVariables.set(\"procedureEstimateVisitId\", estimate.id);",
+                  "if (billed) pm.collectionVariables.set(\"procedureBilledVisitId\", billed.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Baca estimasi biaya kunjungan",
+          "request": {
+            "method": "GET",
+            "url": "{{backendUrl}}/procedures/visits/{{procedureEstimateVisitId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Estimasi memuat biaya pendaftaran\", function () {",
+                  "    const billing = pm.response.json().billing;",
+                  "    pm.expect(billing.invoice).to.be.null;",
+                  "    pm.expect(billing.total_amount).to.be.a(\"string\");",
+                  "    pm.expect(billing.items.some(function (item) { return item.item_type === \"registration\"; })).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Baca tindakan dan tagihan yang dibayar sebagian",
+          "request": {
+            "method": "GET",
+            "url": "{{backendUrl}}/procedures/visits/{{procedureBilledVisitId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const procedureContext = pm.response.json();",
+                  "const recorded = procedureContext.items.find(function (item) { return item.code === \"DEMO-TDK-001\" && !item.cancelled_at; });",
+                  "pm.test(\"Master aktif memuat tarif dan tagihan memuat tindakan\", function () {",
+                  "    pm.expect(recorded.unit_price).to.be.a(\"string\");",
+                  "    pm.expect(procedureContext.options.some(function (item) { return item.code === \"DEMO-TDK-002\"; })).to.be.true;",
+                  "    pm.expect(procedureContext.billing.invoice.status).to.equal(\"partial\");",
+                  "    pm.expect(procedureContext.billing.items.some(function (item) { return item.item_type === \"procedure\"; })).to.be.true;",
+                  "    pm.expect(procedureContext.requires_revision_reason).to.be.true;",
+                  "});",
+                  "if (recorded) {",
+                  "    pm.collectionVariables.set(\"procedureItemId\", recorded.id);",
+                  "    pm.collectionVariables.set(\"procedureQuantity\", recorded.quantity);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Simpan ulang jumlah tindakan yang sama",
+          "request": {
+            "method": "PATCH",
+            "url": "{{backendUrl}}/procedures/visits/{{procedureBilledVisitId}}/items/{{procedureItemId}}",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"quantity\": \"{{procedureQuantity}}\",\n  \"expected_quantity\": \"{{procedureQuantity}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Jumlah tetap sesuai data terakhir\", function () {",
+                  "    const id = pm.collectionVariables.get(\"procedureItemId\");",
+                  "    const row = pm.response.json().items.find(function (item) { return item.id === id; });",
+                  "    pm.expect(row.quantity).to.equal(Number(pm.collectionVariables.get(\"procedureQuantity\")));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Tolak jumlah tindakan nol",
+          "request": {
+            "method": "POST",
+            "url": "{{backendUrl}}/procedures/visits/{{procedureBilledVisitId}}/items",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"procedure_id\": \"1\",\n  \"quantity\": 0\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 422\", function () {",
+                  "    pm.response.to.have.status(422);",
+                  "});",
+                  "pm.test(\"Kesalahan menunjuk field quantity\", function () {",
+                  "    pm.expect(pm.response.json().errors.quantity).to.be.a(\"string\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Tolak pembatalan dengan jumlah lama",
+          "request": {
+            "method": "POST",
+            "url": "{{backendUrl}}/procedures/visits/{{procedureBilledVisitId}}/items/{{procedureItemId}}/cancel",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"expected_quantity\": 2147483647,\n  \"reason\": \"Simulasi jumlah lama\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 409\", function () {",
+                  "    pm.response.to.have.status(409);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Logout dokter tindakan",
+          "request": {
+            "method": "POST",
+            "url": "{{backendUrl}}/auth/logout"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 204\", function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});",
+                  "pm.collectionVariables.unset(\"accessToken\");"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login petugas untuk uji akses tindakan",
+          "request": {
+            "method": "POST",
+            "url": "{{backendUrl}}/auth/login",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"demo.pendaftaran\",\n  \"password\": \"{{demoPassword}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.collectionVariables.unset(\"accessToken\");",
+                  "if (pm.response.code === 200) pm.collectionVariables.set(\"accessToken\", pm.response.json().access_token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Tolak akses biaya tindakan oleh petugas",
+          "request": {
+            "method": "GET",
+            "url": "{{backendUrl}}/procedures/visits/{{procedureBilledVisitId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 403\", function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Logout setelah uji tindakan",
+          "request": {
+            "method": "POST",
+            "url": "{{backendUrl}}/auth/logout"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 204\", function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});",
+                  "pm.collectionVariables.unset(\"accessToken\");",
+                  "pm.collectionVariables.unset(\"procedureEstimateVisitId\");",
+                  "pm.collectionVariables.unset(\"procedureBilledVisitId\");",
+                  "pm.collectionVariables.unset(\"procedureItemId\");",
+                  "pm.collectionVariables.unset(\"procedureQuantity\");"
                 ]
               }
             }

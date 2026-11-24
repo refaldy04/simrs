@@ -1,13 +1,15 @@
-import { Alert, Button, Paper, Typography } from '@mui/material';
+import { Alert, Button, Paper, Tab, Tabs, Typography } from '@mui/material';
 import { useEffect, useState } from 'react';
 import { LoadStatus } from '../components/LoadStatus.jsx';
 import { formatDate } from '../format.js';
+import { VisitProcedures } from '../procedure/VisitProcedures.jsx';
 import { VisitStatus } from '../registration/VisitTable.jsx';
 import { getExamination } from '../service/examinationService.js';
 import { ExaminationForm } from './ExaminationForm.jsx';
 import { MedicalRecordHistory } from './MedicalRecordHistory.jsx';
 
-export function ExaminationPage({ visitId, token, onUnauthorized }) {
+export function ExaminationPage({ visitId, token, canManageProcedures, onUnauthorized }) {
+  const [tab, setTab] = useState('examination');
   const [context, setContext] = useState(null);
   const [loadError, setLoadError] = useState('');
   const [retry, setRetry] = useState(0);
@@ -46,6 +48,13 @@ export function ExaminationPage({ visitId, token, onUnauthorized }) {
     setSavedCount((count) => count + 1);
   }
 
+  function visitStatusChanged(status) {
+    setContext((current) => {
+      if (!current || current.visit.status === status) return current;
+      return { ...current, visit: { ...current.visit, status } };
+    });
+  }
+
   const visit = context?.visit;
   const queueLink = '#/registration/queue' + (visit ? '?date=' + visit.visit_date : '');
 
@@ -75,15 +84,38 @@ export function ExaminationPage({ visitId, token, onUnauthorized }) {
       {notice && <Alert severity="success" role="status">{notice}</Alert>}
       {context && (
         <>
-          <ExaminationForm
-            key={context.examination?.updated_at ?? 'new'}
-            context={context}
-            token={token}
-            onSaved={examinationSaved}
-            onReload={reload}
-            onUnauthorized={onUnauthorized}
-          />
-          <MedicalRecordHistory visitId={visitId} token={token} savedCount={savedCount} onUnauthorized={onUnauthorized} />
+          {canManageProcedures && (
+            <Tabs value={tab} onChange={(_event, value) => setTab(value)} aria-label="Bagian kunjungan" variant="scrollable">
+              <Tab id="examination-tab" aria-controls="examination-panel" label="Pemeriksaan & RME" value="examination" />
+              <Tab id="procedures-tab" aria-controls="procedures-panel" label="Tindakan & tagihan" value="procedures" />
+            </Tabs>
+          )}
+          <div role="tabpanel" id="examination-panel" aria-labelledby={canManageProcedures ? 'examination-tab' : undefined} hidden={tab !== 'examination'}>
+            <div className="grid min-w-0 gap-4">
+              <ExaminationForm
+                key={context.examination?.updated_at ?? 'new'}
+                context={context}
+                token={token}
+                onSaved={examinationSaved}
+                onReload={reload}
+                onUnauthorized={onUnauthorized}
+              />
+              <MedicalRecordHistory visitId={visitId} token={token} savedCount={savedCount} onUnauthorized={onUnauthorized} />
+            </div>
+          </div>
+          {canManageProcedures && (
+            <div role="tabpanel" id="procedures-panel" aria-labelledby="procedures-tab" hidden={tab !== 'procedures'}>
+              {tab === 'procedures' && (
+                <VisitProcedures
+                  visitId={visitId}
+                  visitStatus={visit.status}
+                  token={token}
+                  onStatusChange={visitStatusChanged}
+                  onUnauthorized={onUnauthorized}
+                />
+              )}
+            </div>
+          )}
         </>
       )}
     </div>

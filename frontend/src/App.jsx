@@ -104,6 +104,7 @@ export function App() {
   const canRegister = permissions.includes('visits.register');
   const canReadQueue = permissions.includes('visits.queue');
   const canExamine = permissions.includes('examinations.manage');
+  const canManageProcedures = permissions.includes('procedures.manage');
   const masterRoute = canOpenMaster ? /^#\/master-data(?:\/([a-z-]+))?$/.exec(locationHash) : null;
   const registrationRoute = canReadQueue
     ? /^#\/registration(?:\/(schedules|queue))?(?:\?date=(\d{4}-\d{2}-\d{2}))?$/.exec(locationHash)
@@ -128,7 +129,15 @@ export function App() {
     );
   } else if (examinationRoute) {
     const visitId = examinationRoute[1];
-    content = <ExaminationPage key={visitId} visitId={visitId} token={session.token} onUnauthorized={expireSession} />;
+    content = (
+      <ExaminationPage
+        key={visitId}
+        visitId={visitId}
+        token={session.token}
+        canManageProcedures={canManageProcedures}
+        onUnauthorized={expireSession}
+      />
+    );
   }
 
   return (

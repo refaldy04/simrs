@@ -122,3 +122,32 @@ Kirim `finish: true` dengan diagnosis utama untuk memindahkan kunjungan ke `awai
 Izin yang kurang menghasilkan `403`. ID yang tidak tersedia untuk dokter tersebut menghasilkan `404`. Kunjungan dibatalkan, percobaan menyelesaikan ulang, atau `expected_updated_at` yang kedaluwarsa menghasilkan `409`. Kesalahan isian menghasilkan `422` dengan objek `errors` per field.
 
 Folder **Pemeriksaan dan RME** menguji akses dokter, pembacaan riwayat, penyimpanan ulang, konflik versi, validasi, dan pembatasan akses peran dengan data demo. [Koleksi SIMRS](../postman/SIMRS.postman_collection.json)
+
+## Tindakan dan komponen tagihan
+
+Kirim token Bearer dengan izin `procedures.manage`. `{id}` adalah ID kunjungan yang ditugaskan kepada dokter, dan `{itemId}` adalah ID tindakan pada kunjungan tersebut. Setelah pemeriksaan disimpan, dokter dapat menambah atau merevisi tindakan.
+
+| Metode dan path | Respons |
+| --- | --- |
+| `GET /procedures/visits/{id}` | `200` dengan tindakan, pilihan master aktif, dan komponen tagihan. |
+| `POST /procedures/visits/{id}/items` | `201` dengan tindakan dan komponen biaya setelah penambahan. |
+| `PATCH /procedures/visits/{id}/items/{itemId}` | `200` dengan jumlah dan tagihan terbaru. |
+| `POST /procedures/visits/{id}/items/{itemId}/cancel` | `200` dengan tindakan berstatus dibatalkan dan komponen biaya terbaru. |
+
+Respons memuat `visit_status`, `can_write`, `requires_revision_reason`, `items`, `options`, dan `billing`. `billing.items` memuat jenis, deskripsi, jumlah, tarif satuan, dan subtotal. Harga dan total dikirim sebagai string desimal. Sebelum tagihan terbit, `billing.invoice` bernilai `null` dan panel menampilkan estimasi pendaftaran serta tindakan yang aktif. Setelah terbit, API membaca `invoice_items` dan `invoice_balances` untuk menampilkan rincian dan saldo tagihan.
+
+Penambahan menerima `procedure_id` dari pilihan master dan `quantity` dengan nilai bawaan `1`. `expected_unit_price` opsional dan memakai string tarif dari `options`. API menyalin tarif master pada saat menyimpan tindakan. Tindakan yang sudah aktif dihitung melalui jumlah pada baris tersebut.
+
+```json
+{
+  "procedure_id": "2",
+  "quantity": 2,
+  "expected_unit_price": "75000.00"
+}
+```
+
+Untuk mengubah jumlah, kirim `quantity` baru dan `expected_quantity` dari baris terakhir yang dibaca. Pembatalan hanya membutuhkan `expected_quantity` dan alasan bila diwajibkan. Setiap perubahan setelah pemeriksaan selesai atau setelah tagihan terbit memerlukan `reason`. Tindakan dibatalkan secara lunak dan tersimpan di riwayat.
+
+Izin yang kurang menghasilkan `403`. Kunjungan di luar penugasan dokter atau tindakan dari kunjungan lain menghasilkan `404`. Isian yang tidak valid menghasilkan `422` dengan `errors` per field. Konflik tarif, jumlah lama, tindakan aktif yang sama, atau total baru di bawah jumlah terbayar menghasilkan `409`.
+
+Folder **Tindakan dan Tagihan** memeriksa katalog, komponen biaya, pembacaan tagihan yang dibayar sebagian, dan konflik perubahan dengan seed demo. [Koleksi SIMRS](../postman/SIMRS.postman_collection.json)
