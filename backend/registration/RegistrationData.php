@@ -198,6 +198,26 @@ final class RegistrationData
             ]);
     }
 
+    public function assignedVisit(string $id, string $doctorUserId, bool $lock = false): array
+    {
+        $command = $this->visitQuery()
+            ->where(['visit.id' => $id, 'staff.user_id' => $doctorUserId])
+            ->createCommand($this->db);
+        if ($lock) {
+            $command = $this->db->createCommand(
+                $command->getSql() . ' FOR UPDATE OF visit FOR SHARE OF schedule, staff',
+                $command->params,
+            );
+        }
+
+        $visit = $command->queryOne();
+        if ($visit === false) {
+            throw new NotFoundHttpException('Kunjungan tidak ditemukan.');
+        }
+
+        return $this->serialize($visit);
+    }
+
     private function visitQuery(): Query
     {
         return (new Query())

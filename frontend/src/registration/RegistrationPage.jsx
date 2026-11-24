@@ -95,7 +95,7 @@ function ScheduleViews({ view, date, token, onUnauthorized }) {
   );
 }
 
-export function RegistrationPage({ view, requestedDate, token, canRegister, onUnauthorized }) {
+export function RegistrationPage({ view, requestedDate, token, canRegister, canExamine, onUnauthorized }) {
   const date = requestedDate ?? todayInJakarta();
   const tabs = [
     ...(canRegister ? [['register', 'Pendaftaran']] : []),
@@ -134,7 +134,14 @@ export function RegistrationPage({ view, requestedDate, token, canRegister, onUn
       </Paper>
 
       {view === 'queue' ? (
-        <VisitQueue key={date} date={date} token={token} canRegister={canRegister} onUnauthorized={onUnauthorized} />
+        <VisitQueue
+          key={date}
+          date={date}
+          token={token}
+          canRegister={canRegister}
+          canExamine={canExamine}
+          onUnauthorized={onUnauthorized}
+        />
       ) : (
         <ScheduleViews key={view} view={view} date={date} token={token} onUnauthorized={onUnauthorized} />
       )}

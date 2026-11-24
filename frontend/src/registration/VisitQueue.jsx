@@ -6,7 +6,7 @@ import { SelectField } from '../components/SelectField.jsx';
 import { cancelVisit, listQueue } from '../service/registrationService.js';
 import { VisitTable, visitStatuses } from './VisitTable.jsx';
 
-export function VisitQueue({ date, token, canRegister, onUnauthorized }) {
+export function VisitQueue({ date, token, canRegister, canExamine, onUnauthorized }) {
   const [clinicId, setClinicId] = useState('');
   const [status, setStatus] = useState('all');
   const [page, setPage] = useState(1);
@@ -97,7 +97,12 @@ export function VisitQueue({ date, token, canRegister, onUnauthorized }) {
       {queue && (
         <>
           {queue.items.length > 0 ? (
-            <VisitTable items={queue.items} cancelling={cancelling} onCancel={canRegister ? cancel : undefined} />
+            <VisitTable
+              items={queue.items}
+              cancelling={cancelling}
+              onCancel={canRegister ? cancel : undefined}
+              canExamine={canExamine}
+            />
           ) : (
             <Typography color="text.secondary">Belum ada antrean yang cocok.</Typography>
           )}

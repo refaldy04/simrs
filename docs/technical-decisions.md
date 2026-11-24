@@ -37,6 +37,14 @@ Yii2 memeriksa pasien dan sesi aktif dalam transaksi yang sama dengan penyimpana
 
 Counter `visit_queue_counters` menaikkan nomor per poli dan tanggal dengan `INSERT ... ON CONFLICT ... DO UPDATE RETURNING`. Indeks unik parsial di `visits` menolak pendaftaran ulang selama kunjungan sebelumnya belum dibatalkan. Transaksi mengembalikan counter ke nilai sebelumnya saat pendaftaran ditolak. Pembatalan mengubah status dan mencatat aktor di `audit_logs` dalam satu transaksi. Nomor yang dibatalkan tetap tercatat, sehingga pendaftaran berikutnya mendapat nomor baru. [INSERT PostgreSQL](https://www.postgresql.org/docs/17/sql-insert.html)
 
+## Pemeriksaan dan riwayat rekam medis
+
+Pemeriksaan memakai `examinations`, `diagnoses`, dan `audit_logs` yang sudah ada. Yii2 menentukan dokter dan pasien dari kunjungan yang terjadwal. Dokter membaca riwayat pasien melalui kunjungan yang ditugaskan kepadanya, sedangkan perubahan hasil diperiksa berdasarkan penugasan kunjungan yang diubah.
+
+Penyimpanan mengunci kunjungan dan mencocokkan `expected_updated_at` dengan versi yang sedang tersimpan. Catatan, diagnosis, status kunjungan, serta audit disimpan dalam satu transaksi. Dua penyimpanan dengan versi awal yang sama menghasilkan satu hasil terbaru dan konflik untuk permintaan yang tertinggal. [Penguncian baris PostgreSQL](https://www.postgresql.org/docs/17/explicit-locking.html#LOCKING-ROWS)
+
+Revisi pemeriksaan yang sudah selesai atau memiliki tagihan memerlukan alasan. Diagnosis dicatat sebagai data klinis, sehingga revisinya tidak mengubah komponen invoice maupun pembayaran. Riwayat mengurutkan catatan berdasarkan tanggal kunjungan dan waktu pemeriksaan serta memuat diagnosis dalam kueri halaman yang sama.
+
 ## Rancangan transaksi aplikasi
 
 | Skenario | Aturan basis data dan alur transaksi |

@@ -86,3 +86,39 @@ Pendaftaran menerima dua ID dalam body JSON. Yii2 mengambil poli, tanggal, dan t
 Pasien atau jadwal yang sudah nonaktif menghasilkan `422`. Pendaftaran kedua untuk pasien, poli, dan tanggal yang sama menghasilkan `409` selama kunjungan sebelumnya belum dibatalkan. Pembatalan tersedia untuk status `waiting`. Mengulangi pembatalan kunjungan yang sudah `cancelled` mengembalikan status yang sama. Nomor antrean yang dibatalkan tersimpan di riwayat.
 
 Folder **Pendaftaran dan Antrean** memeriksa jadwal, pencarian pasien, riwayat, dan daftar antrean dari data demo. [Koleksi SIMRS](../postman/SIMRS.postman_collection.json)
+
+## Pemeriksaan, diagnosis, dan RME
+
+Endpoint memakai token Bearer dengan izin `examinations.manage`. `{id}` adalah ID kunjungan yang dijadwalkan untuk dokter pemilik token. Riwayat memakai pasien dari kunjungan tersebut dan menyertakan pemeriksaan terdahulu pasien, termasuk catatan dari dokter lain. Hak untuk mengubah pemeriksaan diperiksa pada kunjungan yang bersangkutan.
+
+| Metode dan path | Respons |
+| --- | --- |
+| `GET /examinations/visits/{id}` | `200` dengan `visit`, `examination`, dan `requires_revision_reason`. `examination` bernilai `null` sebelum catatan dibuat. |
+| `PUT /examinations/visits/{id}` | `200` dengan status kunjungan dan pemeriksaan setelah disimpan. |
+| `GET /examinations/visits/{id}/history` | `200` dengan `items`, `page`, `page_size`, dan `total`. Setiap catatan memuat keluhan, anamnesis, tanda vital, hasil fisik, diagnosis, dokter pemeriksa, tanggal kunjungan, dan poli. |
+
+`PUT` menyimpan isian pemeriksaan lengkap. Kirim `chief_complaint`, daftar `diagnoses`, dan `expected_updated_at`. Isian klinis opsional yang dikosongkan disimpan sebagai `null`. Gunakan `null` untuk `expected_updated_at` pada pemeriksaan baru, lalu gunakan nilai `examination.updated_at` dari respons terakhir saat mengubahnya.
+
+```json
+{
+  "chief_complaint": "Keluhan simulasi",
+  "anamnesis": "Anamnesis simulasi",
+  "physical_findings": "Hasil pemeriksaan fisik simulasi",
+  "pulse_rate": 76,
+  "temperature_c": "36.7",
+  "diagnoses": [
+    { "code": "DEMO-DX-001", "description": "Diagnosis utama simulasi", "is_primary": true },
+    { "code": null, "description": "Diagnosis sekunder simulasi", "is_primary": false }
+  ],
+  "expected_updated_at": null,
+  "finish": false
+}
+```
+
+Saat `finish` bernilai `false`, penyimpanan pertama mengubah `waiting` menjadi `in_examination`. Daftar `diagnoses` boleh kosong selama pemeriksaan berjalan. Jika ada diagnosis, tepat satu harus ditandai utama. Kode bersifat opsional dan setiap kode yang diisi harus unik dalam pemeriksaan.
+
+Kirim `finish: true` dengan diagnosis utama untuk memindahkan kunjungan ke `awaiting_billing`. Revisi hasil yang sudah selesai atau punya tagihan memakai `finish: false` dan menyertakan `reason`. Perubahan menyimpan aktor, alasan, serta hasil sebelum dan sesudah di audit.
+
+Izin yang kurang menghasilkan `403`. ID yang tidak tersedia untuk dokter tersebut menghasilkan `404`. Kunjungan dibatalkan, percobaan menyelesaikan ulang, atau `expected_updated_at` yang kedaluwarsa menghasilkan `409`. Kesalahan isian menghasilkan `422` dengan objek `errors` per field.
+
+Folder **Pemeriksaan dan RME** menguji akses dokter, pembacaan riwayat, penyimpanan ulang, konflik versi, validasi, dan pembatasan akses peran dengan data demo. [Koleksi SIMRS](../postman/SIMRS.postman_collection.json)

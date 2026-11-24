@@ -36,6 +36,14 @@
     {
       "key": "registrationPatientId",
       "value": ""
+    },
+    {
+      "key": "examinationVisitId",
+      "value": ""
+    },
+    {
+      "key": "examinationBody",
+      "value": ""
     }
   ],
   "item": [
@@ -624,6 +632,416 @@
                   "});",
                   "pm.collectionVariables.unset(\"accessToken\");",
                   "pm.collectionVariables.unset(\"registrationPatientId\");"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Pemeriksaan dan RME",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{accessToken}}",
+            "type": "string"
+          }
+        ]
+      },
+      "item": [
+        {
+          "name": "Login dokter pemeriksaan",
+          "request": {
+            "method": "POST",
+            "url": "{{backendUrl}}/auth/login",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"demo.dokter.umum\",\n  \"password\": \"{{demoPassword}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.collectionVariables.unset(\"accessToken\");",
+                  "pm.collectionVariables.unset(\"examinationVisitId\");",
+                  "pm.collectionVariables.unset(\"examinationBody\");",
+                  "if (pm.response.code === 200) pm.collectionVariables.set(\"accessToken\", pm.response.json().access_token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cari kunjungan dari antrean dokter",
+          "request": {
+            "method": "GET",
+            "url": "{{backendUrl}}/registration/visits?date={{registrationDate}}&status=completed"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const visit = pm.response.json().items.find(function (item) {",
+                  "    return item.medical_record_no === \"DEMO-RM-001\";",
+                  "});",
+                  "pm.test(\"Kunjungan demo tersedia untuk dokter\", function () {",
+                  "    pm.expect(visit).to.be.an(\"object\");",
+                  "});",
+                  "if (visit) pm.collectionVariables.set(\"examinationVisitId\", visit.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Buka pemeriksaan kunjungan demo",
+          "request": {
+            "method": "GET",
+            "url": "{{backendUrl}}/examinations/visits/{{examinationVisitId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const result = pm.response.json();",
+                  "pm.test(\"Pemeriksaan memiliki diagnosis utama dan memerlukan alasan revisi\", function () {",
+                  "    pm.expect(result.visit.id).to.equal(pm.collectionVariables.get(\"examinationVisitId\"));",
+                  "    pm.expect(result.requires_revision_reason).to.be.true;",
+                  "    pm.expect(result.examination.diagnoses.some(function (item) { return item.is_primary; })).to.be.true;",
+                  "});",
+                  "if (result.examination) {",
+                  "    const exam = result.examination;",
+                  "    const fields = [\"chief_complaint\", \"anamnesis\", \"physical_findings\", \"systolic_bp\", \"diastolic_bp\",",
+                  "        \"pulse_rate\", \"respiratory_rate\", \"temperature_c\", \"diagnoses\"];",
+                  "    const body = Object.fromEntries(fields.map(function (name) { return [name, exam[name]]; }));",
+                  "    body.expected_updated_at = exam.updated_at;",
+                  "    body.finish = false;",
+                  "    pm.collectionVariables.set(\"examinationBody\", JSON.stringify(body));",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Baca riwayat rekam medis",
+          "request": {
+            "method": "GET",
+            "url": "{{backendUrl}}/examinations/visits/{{examinationVisitId}}/history?page=1&page_size=20"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Riwayat memuat pemeriksaan dari kunjungan demo\", function () {",
+                  "    const visitId = pm.collectionVariables.get(\"examinationVisitId\");",
+                  "    pm.expect(pm.response.json().items.some(function (item) { return item.visit_id === visitId; })).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Simpan ulang hasil yang sama",
+          "request": {
+            "method": "PUT",
+            "url": "{{backendUrl}}/examinations/visits/{{examinationVisitId}}",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{{examinationBody}}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Versi pemeriksaan tetap sama saat isian tidak berubah\", function () {",
+                  "    const body = JSON.parse(pm.collectionVariables.get(\"examinationBody\"));",
+                  "    pm.expect(pm.response.json().examination.updated_at).to.equal(body.expected_updated_at);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Tolak penyimpanan dari versi lama",
+          "request": {
+            "method": "PUT",
+            "url": "{{backendUrl}}/examinations/visits/{{examinationVisitId}}",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"chief_complaint\": \"Keluhan simulasi\",\n  \"diagnoses\": [],\n  \"expected_updated_at\": \"2000-01-01 00:00:00+00\",\n  \"finish\": false\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 409\", function () {",
+                  "    pm.response.to.have.status(409);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Tolak diagnosis utama ganda",
+          "request": {
+            "method": "PUT",
+            "url": "{{backendUrl}}/examinations/visits/{{examinationVisitId}}",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"chief_complaint\": \"Keluhan simulasi\",\n  \"diagnoses\": [\n    {\n      \"code\": \"DEMO-DX-A\",\n      \"description\": \"Diagnosis fiktif A\",\n      \"is_primary\": true\n    },\n    {\n      \"code\": \"DEMO-DX-B\",\n      \"description\": \"Diagnosis fiktif B\",\n      \"is_primary\": true\n    }\n  ],\n  \"expected_updated_at\": null,\n  \"finish\": false\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 422\", function () {",
+                  "    pm.response.to.have.status(422);",
+                  "});",
+                  "pm.test(\"Kesalahan memakai field diagnoses\", function () {",
+                  "    pm.expect(pm.response.json().errors.diagnoses).to.be.a(\"string\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Logout dokter pemeriksaan",
+          "request": {
+            "method": "POST",
+            "url": "{{backendUrl}}/auth/logout"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 204\", function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});",
+                  "pm.collectionVariables.unset(\"accessToken\");"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login dokter lain",
+          "request": {
+            "method": "POST",
+            "url": "{{backendUrl}}/auth/login",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"demo.dokter.dalam\",\n  \"password\": \"{{demoPassword}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.collectionVariables.unset(\"accessToken\");",
+                  "if (pm.response.code === 200) pm.collectionVariables.set(\"accessToken\", pm.response.json().access_token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Tolak riwayat dari kunjungan dokter lain",
+          "request": {
+            "method": "GET",
+            "url": "{{backendUrl}}/examinations/visits/{{examinationVisitId}}/history"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 404\", function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Logout dokter lain",
+          "request": {
+            "method": "POST",
+            "url": "{{backendUrl}}/auth/logout"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 204\", function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});",
+                  "pm.collectionVariables.unset(\"accessToken\");"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login petugas untuk uji akses pemeriksaan",
+          "request": {
+            "method": "POST",
+            "url": "{{backendUrl}}/auth/login",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"demo.pendaftaran\",\n  \"password\": \"{{demoPassword}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.collectionVariables.unset(\"accessToken\");",
+                  "if (pm.response.code === 200) pm.collectionVariables.set(\"accessToken\", pm.response.json().access_token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Tolak akses pemeriksaan oleh petugas pendaftaran",
+          "request": {
+            "method": "GET",
+            "url": "{{backendUrl}}/examinations/visits/{{examinationVisitId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 403\", function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Logout setelah uji akses pemeriksaan",
+          "request": {
+            "method": "POST",
+            "url": "{{backendUrl}}/auth/logout"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 204\", function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});",
+                  "pm.collectionVariables.unset(\"accessToken\");",
+                  "pm.collectionVariables.unset(\"examinationVisitId\");",
+                  "pm.collectionVariables.unset(\"examinationBody\");"
                 ]
               }
             }

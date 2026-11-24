@@ -119,3 +119,11 @@ Masuk sebagai `demo.pendaftaran` dan buka **Pendaftaran & antrean**. Pilih tangg
 Tab **Jadwal** menampilkan sesi aktif pada tanggal yang dipilih. Di tab **Antrean**, petugas dapat menyaring poli dan status, memuat ulang daftar, serta membatalkan kunjungan berstatus **Menunggu**. Akun dokter dapat melihat jadwal dan antreannya sendiri melalui **Jadwal & antrean**.
 
 Tanggal bawaan mengikuti `Asia/Jakarta`. Data demo tersedia pada **23 November 2026**. Untuk mencoba pendaftaran, cari `DEMO-RM-005` dan pilih **Poli Penyakit Dalam Demo** pada tanggal tersebut. [Buka pendaftaran demo](http://127.0.0.1:5173/#/registration?date=2026-11-23) · [Dokumentasi API](docs/api.md#pendaftaran-jadwal-dan-antrean)
+
+### Pemeriksaan, diagnosis, dan rekam medis
+
+Masuk sebagai `demo.dokter.umum`, buka antrean **23 November 2026**, lalu pilih **Periksa** pada pasien `DEMO-RM-005` yang berstatus **Menunggu**. Isi keluhan utama, anamnesis, tanda vital, hasil pemeriksaan fisik, dan diagnosis. Pemeriksaan yang sudah berjalan bisa dilanjutkan oleh `demo.dokter.dalam` pada pasien `DEMO-RM-004`. [Buka antrean dokter demo](http://127.0.0.1:5173/#/registration/queue?date=2026-11-23)
+
+**Simpan pemeriksaan** menyimpan catatan dengan status **Dalam pemeriksaan**. Setelah diagnosis utama diisi, **Selesaikan pemeriksaan** mengubah status menjadi **Menunggu pembayaran**. Panel **Riwayat rekam medis** menampilkan pemeriksaan tersimpan pasien. Untuk mengoreksi pemeriksaan yang sudah selesai, buka kembali dari antrean dan isi alasan perubahan. [Dokumentasi API](docs/api.md#pemeriksaan-diagnosis-dan-rme)
+
+Tangkapan layar memakai data fiktif dari pengujian. [Form pemeriksaan](docs/screenshots/pemeriksaan.png) · [Riwayat rekam medis](docs/screenshots/riwayat-rekam-medis.png)

@@ -29,7 +29,9 @@ export function VisitStatus({ status }) {
   );
 }
 
-export function VisitTable({ items, history = false, cancelling = null, onCancel }) {
+export function VisitTable({ items, history = false, cancelling = null, onCancel, canExamine = false }) {
+  const showActions = onCancel || canExamine;
+
   return (
     <TableContainer tabIndex={0} className="rounded-lg border border-slate-200">
       <Table size="small" aria-label={history ? 'Daftar riwayat kunjungan' : 'Daftar antrean'} className="min-w-[36rem]">
@@ -42,7 +44,7 @@ export function VisitTable({ items, history = false, cancelling = null, onCancel
             <TableCell scope="col">Dokter</TableCell>
             {!history && <TableCell scope="col">Jam praktik</TableCell>}
             <TableCell scope="col">Status</TableCell>
-            {onCancel && <TableCell scope="col">Aksi</TableCell>}
+            {showActions && <TableCell scope="col">Aksi</TableCell>}
           </TableRow>
         </TableHead>
         <TableBody>
@@ -62,11 +64,16 @@ export function VisitTable({ items, history = false, cancelling = null, onCancel
               <TableCell>{visit.doctor_name}</TableCell>
               {!history && <TableCell>{formatTime(visit.starts_at)}–{formatTime(visit.ends_at)}</TableCell>}
               <TableCell><VisitStatus status={visit.status} /></TableCell>
-              {onCancel && (
+              {showActions && (
                 <TableCell>
-                  {visit.status === 'waiting' && (
+                  {onCancel && visit.status === 'waiting' && (
                     <Button size="small" color="error" disabled={cancelling !== null} onClick={() => onCancel(visit)}>
                       {cancelling === visit.id ? 'Membatalkan…' : 'Batalkan'}
+                    </Button>
+                  )}
+                  {canExamine && visit.status !== 'cancelled' && (
+                    <Button size="small" href={'#/examinations/' + visit.id}>
+                      {visit.status === 'waiting' ? 'Periksa' : 'Buka pemeriksaan'}
                     </Button>
                   )}
                 </TableCell>

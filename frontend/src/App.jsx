@@ -2,6 +2,7 @@ import { Alert, Button, Chip, Paper, Typography } from '@mui/material';
 import { useCallback, useEffect, useState } from 'react';
 import { readStoredToken, storeToken } from './auth.js';
 import { LoadStatus } from './components/LoadStatus.jsx';
+import { ExaminationPage } from './examination/ExaminationPage.jsx';
 import { LoginForm } from './LoginForm.jsx';
 import { MasterDataPage } from './master/MasterDataPage.jsx';
 import { RegistrationPage } from './registration/RegistrationPage.jsx';
@@ -102,11 +103,14 @@ export function App() {
   const canOpenMaster = permissions.includes('master.manage') || permissions.includes('patients.manage');
   const canRegister = permissions.includes('visits.register');
   const canReadQueue = permissions.includes('visits.queue');
+  const canExamine = permissions.includes('examinations.manage');
   const masterRoute = canOpenMaster ? /^#\/master-data(?:\/([a-z-]+))?$/.exec(locationHash) : null;
   const registrationRoute = canReadQueue
     ? /^#\/registration(?:\/(schedules|queue))?(?:\?date=(\d{4}-\d{2}-\d{2}))?$/.exec(locationHash)
     : null;
-  const onOverview = !masterRoute && !registrationRoute;
+  const examinationRoute = canExamine ? /^#\/examinations\/([1-9]\d{0,18})$/.exec(locationHash) : null;
+  const onQueue = Boolean(registrationRoute || examinationRoute);
+  const onOverview = !masterRoute && !onQueue;
 
   let content = <WorkspaceOverview permissions={permissions} />;
   if (masterRoute) {
@@ -118,9 +122,13 @@ export function App() {
         requestedDate={registrationRoute[2]}
         token={session.token}
         canRegister={canRegister}
+        canExamine={canExamine}
         onUnauthorized={expireSession}
       />
     );
+  } else if (examinationRoute) {
+    const visitId = examinationRoute[1];
+    content = <ExaminationPage key={visitId} visitId={visitId} token={session.token} onUnauthorized={expireSession} />;
   }
 
   return (
@@ -154,8 +162,8 @@ export function App() {
             {canReadQueue && (
               <Button
                 href={canRegister ? '#/registration' : '#/registration/queue'}
-                variant={registrationRoute ? 'contained' : 'text'}
-                aria-current={registrationRoute ? 'page' : undefined}
+                variant={onQueue ? 'contained' : 'text'}
+                aria-current={onQueue ? 'page' : undefined}
               >
                 {canRegister ? 'Pendaftaran & antrean' : 'Jadwal & antrean'}
               </Button>
