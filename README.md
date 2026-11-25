@@ -181,3 +181,17 @@ Jalankan uji integrasi pada stack terpisah yang sudah dimigrasi dan di-seed. Uji
 ```sh
 SIMRS_TEST_API_URL=http://127.0.0.1:17808 SIMRS_TEST_SERVICES_URL=http://127.0.0.1:17300 node --test tests/laboratory.integration.mjs
 ```
+
+### Dashboard statistik
+
+Masuk sebagai `demo.admin` dan buka **Dashboard**. Pilih **Tanggal mulai** dan **Tanggal akhir**, lalu klik **Terapkan**. Kedua batas tanggal dihitung dalam WIB. **Bulan ini** kembali ke awal bulan sampai hari ini. Untuk melihat data seed, pilih **23 November 2026** pada kedua tanggal. [Buka dashboard demo](http://127.0.0.1:5173/#/dashboard?date_from=2026-11-23&date_to=2026-11-23)
+
+Dashboard menampilkan kunjungan per poli, jumlah tindakan, penggunaan obat, dan pendapatan yang diterima per metode. Pada **Status pembayaran**, pilih salah satu status atau **Semua invoice** untuk melihat total, pembayaran yang sudah diterima, dan sisa tagihan. Status tersebut memakai saldo terkini untuk invoice yang terbit dalam periode pilihan. [Dokumentasi API](docs/api.md#dashboard-statistik)
+
+Tangkapan layar memakai data seed fiktif. [Tampilan dashboard](docs/screenshots/dashboard.png)
+
+Uji dashboard membaca data dari stack pengujian yang sudah dimigrasi dan di-seed.
+
+```sh
+SIMRS_TEST_API_URL=http://127.0.0.1:17808 SIMRS_TEST_SERVICES_URL=http://127.0.0.1:17300 node --test tests/dashboard.integration.mjs
+```

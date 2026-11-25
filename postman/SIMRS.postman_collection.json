@@ -2435,6 +2435,279 @@
           ]
         }
       ]
+    },
+    {
+      "name": "Dashboard Statistik",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{accessToken}}",
+            "type": "string"
+          }
+        ]
+      },
+      "item": [
+        {
+          "name": "Login administrator dashboard",
+          "request": {
+            "method": "POST",
+            "url": "{{backendUrl}}/auth/login",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"demo.admin\",\n  \"password\": \"{{demoPassword}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.collectionVariables.unset(\"accessToken\");",
+                  "if (pm.response.code === 200) pm.collectionVariables.set(\"accessToken\", pm.response.json().access_token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Lihat periode bawaan dashboard",
+          "request": {
+            "method": "GET",
+            "url": "{{servicesUrl}}/dashboard/summary"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const selectedPeriod = pm.response.json().period;",
+                  "pm.test(\"Periode bawaan dimulai pada awal bulan WIB\", function () {",
+                  "    pm.expect(selectedPeriod.time_zone).to.equal(\"Asia/Jakarta\");",
+                  "    pm.expect(selectedPeriod.date_from).to.equal(selectedPeriod.date_to.slice(0, 7) + \"-01\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Lihat statistik pada tanggal demo",
+          "request": {
+            "method": "GET",
+            "url": "{{servicesUrl}}/dashboard/summary?date_from={{registrationDate}}&date_to={{registrationDate}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const stats = pm.response.json();",
+                  "pm.test(\"Statistik memakai tanggal yang dipilih\", function () {",
+                  "    pm.expect(stats.period.date_from).to.equal(pm.collectionVariables.get(\"registrationDate\"));",
+                  "    pm.expect(stats.period.date_to).to.equal(stats.period.date_from);",
+                  "    pm.expect(stats.visits.total).to.be.at.least(5);",
+                  "    pm.expect(stats.procedures.total).to.be.at.least(3);",
+                  "    pm.expect(stats.medicines.total_types).to.be.at.least(2);",
+                  "    pm.expect(Number(stats.revenue.total_amount)).to.be.at.least(435000);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Buka rincian invoice yang dibayar sebagian",
+          "request": {
+            "method": "GET",
+            "url": "{{servicesUrl}}/dashboard/invoices?date_from={{registrationDate}}&date_to={{registrationDate}}&status=partial&page_size=20"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const invoicesPage = pm.response.json();",
+                  "pm.test(\"Rincian memuat invoice demo dan saldo desimal\", function () {",
+                  "    const demoInvoice = invoicesPage.items.find(function (entry) { return entry.invoice_no === \"DEMO-INV-002\"; });",
+                  "    pm.expect(demoInvoice.status).to.equal(\"partial\");",
+                  "    pm.expect(demoInvoice.balance_amount).to.match(/^\\d+\\.\\d{2}$/);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Lihat periode kosong",
+          "request": {
+            "method": "GET",
+            "url": "{{servicesUrl}}/dashboard/summary?date_from=1900-01-01&date_to=1900-01-01"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Periode kosong memiliki total nol\", function () {",
+                  "    const stats = pm.response.json();",
+                  "    pm.expect(stats.visits.total).to.equal(0);",
+                  "    pm.expect(stats.revenue.total_amount).to.equal(\"0.00\");",
+                  "    pm.expect(stats.invoices.by_status).to.deep.equal([]);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Tolak tanggal mulai yang melewati tanggal akhir",
+          "request": {
+            "method": "GET",
+            "url": "{{servicesUrl}}/dashboard/summary?date_from=2026-11-24&date_to=2026-11-23"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Logout administrator dashboard",
+          "request": {
+            "method": "POST",
+            "url": "{{backendUrl}}/auth/logout"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 204\", function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});",
+                  "pm.collectionVariables.unset(\"accessToken\");"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login dokter untuk menguji izin dashboard",
+          "request": {
+            "method": "POST",
+            "url": "{{backendUrl}}/auth/login",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"demo.dokter.umum\",\n  \"password\": \"{{demoPassword}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.collectionVariables.unset(\"accessToken\");",
+                  "if (pm.response.code === 200) pm.collectionVariables.set(\"accessToken\", pm.response.json().access_token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Tolak dashboard untuk dokter",
+          "request": {
+            "method": "GET",
+            "url": "{{servicesUrl}}/dashboard/summary?date_from={{registrationDate}}&date_to={{registrationDate}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 403\", function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Logout dokter dashboard",
+          "request": {
+            "method": "POST",
+            "url": "{{backendUrl}}/auth/logout"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 204\", function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});",
+                  "pm.collectionVariables.unset(\"accessToken\");"
+                ]
+              }
+            }
+          ]
+        }
+      ]
     }
   ]
 }

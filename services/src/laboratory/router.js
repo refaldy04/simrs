@@ -1,6 +1,7 @@
 import express from 'express';
 import { coreApiTarget, requirePermission } from '../authorization.js';
 import { HttpError } from '../errors.js';
+import { pagination } from '../httpInput.js';
 import { listOrders } from './queue.js';
 
 const canReadQueue = requirePermission('lab.requests.read');
@@ -9,15 +10,6 @@ const statuses = ['open', 'requested', 'in_progress', 'completed', 'cancelled', 
 const jsonBody = express.json({ limit: '512kb' });
 
 export const labRouter = express.Router();
-
-function pageNumber(value, fallback, max) {
-  if (value === undefined) return fallback;
-  if (typeof value !== 'string' || !/^[1-9]\d*$/.test(value) || Number(value) > max) {
-    throw new HttpError(400, 'Parameter halaman tidak valid.');
-  }
-
-  return Number(value);
-}
 
 function orderId(value) {
   if (!/^[1-9]\d{0,18}$/.test(value) || (value.length === 19 && value > '9223372036854775807')) {
@@ -62,8 +54,7 @@ labRouter.get('/orders', canReadQueue, async (request, response) => {
   if (typeof q !== 'string' || [...q].length > 150 || q.includes('\0')) {
     throw new HttpError(400, 'Kata kunci pencarian tidak valid.');
   }
-  const page = pageNumber(request.query.page, 1, Math.floor(Number.MAX_SAFE_INTEGER / 100));
-  const pageSize = pageNumber(request.query.page_size, 20, 100);
+  const { page, pageSize } = pagination(request.query);
 
   response.json(await listOrders({ term: q.trim(), status, page, pageSize }));
 });

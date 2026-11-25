@@ -1,5 +1,6 @@
 import express from 'express';
 import { requirePermission } from './authorization.js';
+import { dashboardRouter } from './dashboard/router.js';
 import { db } from './database.js';
 import { handleError, sendProblem } from './errors.js';
 import { startLabIntake } from './laboratory/queue.js';
@@ -28,6 +29,7 @@ app.get('/access/dashboard', requirePermission('dashboard.read'), (_request, res
 });
 
 app.use('/lab', labRouter);
+app.use('/dashboard', dashboardRouter);
 app.use((_request, response) => sendProblem(response, 404, 'Endpoint tidak ditemukan.'));
 app.use(handleError);
 

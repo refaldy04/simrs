@@ -259,3 +259,26 @@ Ambil ID item dari detail permintaan Node.js. Kirim tepat satu hasil per item. `
 Node.js memeriksa tipe dan ukuran body JSON, lalu meneruskan detail dan penyimpanan hasil ke endpoint Yii2 dengan path yang sama. Yii2 memvalidasi isian dan menyimpan hasil, audit, dan penyesuaian tagihan dalam satu transaksi. Jika hasil yang sama sudah tersimpan, respons memuat `replayed: true`. Penggunaan ulang kunci permintaan dengan isian berbeda atau perubahan hasil final menghasilkan `409`. Isian hasil yang tidak valid atau belum lengkap menghasilkan `422` dengan `errors`. Node.js menghasilkan `503` saat layanan yang dibutuhkan tidak tersedia.
 
 Folder **Laboratorium** menguji antrean Node.js, detail dan pengiriman ulang hasil demo, serta riwayat dokter di Yii2. [Koleksi SIMRS](../postman/SIMRS.postman_collection.json)
+
+## Dashboard statistik
+
+Kirim token Bearer dengan izin `dashboard.read` ke Node.js. Kedua endpoint menerima `date_from` dan `date_to` dalam format `YYYY-MM-DD`. Rentang mencakup kedua tanggal dalam zona waktu `Asia/Jakarta`. URL tanpa parameter tanggal memakai rentang dari awal bulan sampai hari ini.
+
+| Metode dan path | Respons |
+| --- | --- |
+| `GET /dashboard/summary` | `200` dengan `period`, `visits`, `procedures`, `medicines`, `revenue`, dan `invoices`. |
+| `GET /dashboard/invoices` | `200` dengan `period`, `items`, `total`, `page`, dan `page_size`. |
+
+Kedua respons memuat `date_from`, `date_to`, dan `time_zone` pada `period`. Contoh periode demo menggunakan `?date_from=2026-11-23&date_to=2026-11-23`.
+
+| Statistik | Data yang dihitung |
+| --- | --- |
+| `visits.total` dan `visits.by_clinic` | Jumlah kunjungan berdasarkan tanggal layanan dan poli dengan status selain dibatalkan. |
+| `procedures.total` dan `procedures.items` | Jumlah satuan tindakan aktif berdasarkan waktu tindakan, dengan rincian per jenis. |
+| `medicines.total_types` dan `medicines.items` | Jumlah jenis dan kuantitas obat dari mutasi penyerahan pada periode tersebut. |
+| `revenue.total_amount`, `revenue.payment_count`, dan `revenue.by_method` | Pembayaran yang diterima menurut waktu bayar, diringkas per metode tunai dan non-tunai. |
+| `invoices.total`, `invoices.balance_amount`, dan `invoices.by_status` | Status dan saldo terkini untuk invoice yang terbit dalam periode tersebut. |
+
+Daftar invoice menerima `status` dengan nilai `all` (bawaan), `unpaid`, `partial`, atau `paid`. `page` dimulai dari `1` dan `page_size` menerima `1` sampai `100` dengan nilai bawaan `20`. Hasil diurutkan dari invoice terbaru. Setiap baris memuat nomor invoice, waktu terbit, nama poli, status, total, jumlah dibayar, dan sisa tagihan. Respons mengirim nominal sebagai string desimal seperti `"80000.00"`.
+
+Tanggal, status, dan halaman yang tidak valid menghasilkan `400`. Token hilang atau kedaluwarsa menghasilkan `401` dan izin yang kurang menghasilkan `403`. Periode kosong menghasilkan total nol dan daftar kosong. Folder **Dashboard Statistik** mencakup contoh filter dan rincian invoice. [Koleksi SIMRS](../postman/SIMRS.postman_collection.json)

@@ -77,6 +77,14 @@ Node.js mengambil event berdasarkan `next_attempt_at` dengan `FOR UPDATE SKIP LO
 
 Penyimpanan hasil mengunci kunjungan dan invoice yang sudah terbit, memvalidasi bahwa setiap item mendapat satu hasil, lalu menyimpan seluruh hasil sekaligus. Lab yang selesai menambah komponen invoice berdasarkan harga pada order. Pembayaran yang sudah tercatat tetap diperhitungkan. Jika biaya lab menghasilkan saldo baru, status kunjungan kembali menunggu pembayaran. Pengiriman ulang hasil yang sama mengembalikan transaksi asli. [Uji integrasi laboratorium](../tests/laboratory.integration.mjs)
 
+## Dashboard dan periode
+
+Kunjungan dihitung dari tanggal layanan dengan status selain dibatalkan. Tindakan aktif menggunakan `performed_at`, penggunaan obat memakai mutasi `dispense` berdasarkan `recorded_at`, dan pendapatan memakai waktu pembayaran `paid_at`. Invoice dikelompokkan berdasarkan tanggal terbit. Status dan saldo terkini berasal dari view `invoice_balances` yang sama dengan modul kasir.
+
+PostgreSQL memakai batas awal pukul 00.00 WIB pada tanggal mulai dan batas akhir eksklusif pukul 00.00 WIB setelah tanggal akhir. Predikat membandingkan kolom timestamp dengan kedua batas itu sehingga indeks tetap bisa dipakai. Migrasi dashboard menambah indeks waktu terbit invoice dan indeks parsial waktu tindakan aktif. Kunjungan, pembayaran, dan mutasi obat memakai indeks yang tersedia sebelumnya.
+
+Node.js menjalankan satu pernyataan agregasi untuk ringkasan agar setiap angka memakai snapshot basis data yang sama. Subkueri mengagregasi kunjungan, tindakan, obat, dan pembayaran secara terpisah. Nominal dijumlahkan sebagai `NUMERIC`. Rincian invoice difilter dan dipaginasi di PostgreSQL. [Uji integrasi dashboard](../tests/dashboard.integration.mjs)
+
 ## Rancangan transaksi aplikasi
 
 | Skenario | Aturan basis data dan alur transaksi |

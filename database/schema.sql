@@ -1363,6 +1363,13 @@ CREATE UNIQUE INDEX invoice_items_registration_uq ON public.invoice_items USING 
 
 
 --
+-- Name: invoices_issued_at_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX invoices_issued_at_idx ON public.invoices USING btree (issued_at, id);
+
+
+--
 -- Name: lab_orders_status_time_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -1423,6 +1430,13 @@ CREATE UNIQUE INDEX prescriptions_visit_idempotency_uq ON public.prescriptions U
 --
 
 CREATE INDEX prescriptions_visit_idx ON public.prescriptions USING btree (visit_id);
+
+
+--
+-- Name: visit_procedures_active_time_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX visit_procedures_active_time_idx ON public.visit_procedures USING btree (performed_at) WHERE (cancelled_at IS NULL);
 
 
 --

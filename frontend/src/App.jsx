@@ -5,6 +5,7 @@ import { BillingDetail } from './billing/BillingDetail.jsx';
 import { BillingQueue } from './billing/BillingQueue.jsx';
 import { InvoicePage } from './billing/InvoicePage.jsx';
 import { LoadStatus } from './components/LoadStatus.jsx';
+import { DashboardPage } from './dashboard/DashboardPage.jsx';
 import { ExaminationPage } from './examination/ExaminationPage.jsx';
 import { LabOrderPage } from './laboratory/LabOrderPage.jsx';
 import { LabQueue } from './laboratory/LabQueue.jsx';
@@ -114,6 +115,7 @@ export function App() {
   const canPrescribe = permissions.includes('prescriptions.create');
   const canDispense = permissions.includes('prescriptions.dispense');
   const canBill = permissions.includes('billing.manage');
+  const canReadDashboard = permissions.includes('dashboard.read');
   const canRequestLab = permissions.includes('lab.request');
   const canReadLab = permissions.includes('lab.results.read');
   const canWorkLab = permissions.includes('lab.requests.read');
@@ -126,8 +128,9 @@ export function App() {
   const onQueue = Boolean(registrationRoute || examinationRoute);
   const onPharmacy = canDispense && locationHash === '#/pharmacy';
   const labRoute = canWorkLab ? /^#\/laboratory(?:\/([1-9]\d{0,18}))?$/.exec(locationHash) : null;
+  const dashboardRoute = canReadDashboard ? /^#\/dashboard(?:\?(.*))?$/.exec(locationHash) : null;
   const billingRoute = canBill ? /^#\/billing(?:\/([1-9]\d{0,18})(\/invoice)?)?$/.exec(locationHash) : null;
-  const onOverview = !masterRoute && !onQueue && !onPharmacy && !billingRoute && !labRoute;
+  const onOverview = !masterRoute && !onQueue && !onPharmacy && !billingRoute && !labRoute && !dashboardRoute;
 
   if (billingRoute?.[2] === '/invoice') {
     const visitId = billingRoute[1];
@@ -137,6 +140,9 @@ export function App() {
   let content = <WorkspaceOverview permissions={permissions} />;
   if (masterRoute) {
     content = <MasterDataPage token={session.token} requestedKey={masterRoute[1]} onUnauthorized={expireSession} />;
+  } else if (dashboardRoute) {
+    const query = dashboardRoute[1] ?? '';
+    content = <DashboardPage key={query} query={query} token={session.token} onUnauthorized={expireSession} />;
   } else if (registrationRoute) {
     content = (
       <RegistrationPage
@@ -194,11 +200,16 @@ export function App() {
       </header>
       <main className="mx-auto grid max-w-7xl gap-4 px-4 py-5 sm:px-6 sm:py-7">
         {notice && <Alert severity="error">{notice}</Alert>}
-        {(canOpenMaster || canReadQueue || canDispense || canBill || canWorkLab) && (
+        {(canOpenMaster || canReadQueue || canDispense || canBill || canWorkLab || canReadDashboard) && (
           <nav aria-label="Navigasi utama" className="flex flex-wrap gap-2">
             <Button href="#/" variant={onOverview ? 'contained' : 'text'} aria-current={onOverview ? 'page' : undefined}>
               Ringkasan
             </Button>
+            {canReadDashboard && (
+              <Button href="#/dashboard" variant={dashboardRoute ? 'contained' : 'text'} aria-current={dashboardRoute ? 'page' : undefined}>
+                Dashboard
+              </Button>
+            )}
             {canOpenMaster && (
               <Button href="#/master-data" variant={masterRoute ? 'contained' : 'text'} aria-current={masterRoute ? 'page' : undefined}>
                 Master data
